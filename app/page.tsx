@@ -32,24 +32,27 @@ export default function Home() {
   return (
     <main>
       <nav className="nav shell" aria-label="Main navigation">
-        <a className="brand" href="#top"><span className="moon" aria-hidden="true" />SMS <b>Moonlight</b></a>
+        <a className="brand productBrand" href="#top">
+          <span className="brandSymbol" aria-hidden="true"><img src="/zencraft-logo.png" alt="" /></span>
+          <span className="productName">SMS <b>Moonlight</b><small>by ZenCraft</small></span>
+        </a>
         <div className="navlinks"><a href="#features">Why Moonlight</a><a href="#pricing">Pricing</a><a href="#setup">How it works</a></div>
         <a className="btn dark small" href="#contact">Book a demo <span>↗</span></a>
       </nav>
 
       <section className="hero shell" id="top">
         <div className="heroCopy">
-          <span className="pill">✦ SCHOOL MANAGEMENT, BEAUTIFULLY SIMPLIFIED</span>
+          <span className="pill">✦ A ZENCRAFT WEB SERVICES PRODUCT</span>
           <h1>More time for<br /><em>what matters.</em></h1>
           <p>SMS Moonlight brings your students, staff, and school operations together—so your team can spend less time managing systems and more time shaping futures.</p>
           <div className="actions"><a className="btn orange" href="#pricing">Explore plans <span>→</span></a><a className="watch" href="#setup"><i>▶</i> See how it works</a></div>
-          <div className="proof"><div><span>JM</span><span>AL</span><span>RS</span></div><p><b>Built with schools, for schools.</b><br />Simple from day one.</p></div>
+          <div className="proof brandProof"><span className="proofMark" aria-hidden="true"><img src="/zencraft-logo.png" alt="" /></span><p><b>Designed and supported by ZenCraft.</b><br />A reliable local partner from day one.</p></div>
         </div>
 
         <div className="preview">
           <div className="ring one" /><div className="ring two" />
           <div className="app">
-            <header><a className="brand mini"><span className="moon" />Moonlight</a><div className="search">⌕ &nbsp; Search anything...</div><span className="user">MS</span></header>
+            <header><a className="brand mini"><span className="brandSymbol"><img src="/zencraft-logo.png" alt="" /></span>Moonlight</a><div className="search">⌕ &nbsp; Search anything...</div><span className="user">MS</span></header>
             <div className="appBody">
               <aside><b>⌂ &nbsp; Overview</b><span>♙ &nbsp; Students</span><span>◇ &nbsp; Staff</span><span>▦ &nbsp; Classes</span><span>◷ &nbsp; Attendance</span><div><strong>Need help?</strong><small>We’re here for you.</small><button>Contact us</button></div></aside>
               <section className="dash">
@@ -80,8 +83,8 @@ export default function Home() {
 
       <section className="section shell setupSteps" id="setup"><div className="sectionHead center"><span>FROM SIGN-UP TO SCHOOL-READY</span><h2>Up and running in <em>three steps.</em></h2></div><div className="steps"><article><b>1</b><small>CREATE</small><h3>Tell us about your school</h3><p>Choose your plan and add the basics. Your secure workspace is created automatically.</p></article><article><b>2</b><small>SET UP</small><h3>Bring your school records</h3><p>Use guided imports for students and staff, then configure your school year and classes.</p></article><article><b>3</b><small>GO LIVE</small><h3>Invite your team</h3><p>Review your setup, invite administrators and staff, and begin your Moonlight journey.</p></article></div><div className="help">✦ <p><b>Prefer a helping hand?</b> Assisted migration, configuration, and launch support are available through a one-time implementation package.</p></div></section>
 
-      <section className="cta" id="contact"><div className="ctaRing r1" /><div className="ctaRing r2" /><div className="shell"><span className="bigMoon"><i /></span><small>YOUR SCHOOL, IN A BETTER RHYTHM</small><h2>Ready to make school<br />management feel <em>lighter?</em></h2><p>See how SMS Moonlight can fit your school today—and grow with you tomorrow.</p><div><a className="btn orange" href="mailto:hello@smsmoonlight.com?subject=SMS%20Moonlight%20Demo">Book your free demo →</a><a className="btn ghost" href="#pricing">View pricing</a></div></div></section>
-      <footer><div className="shell"><a className="brand" href="#top"><span className="moon" />SMS <b>Moonlight</b></a><p>School management, beautifully simplified.</p><nav><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="mailto:hello@smsmoonlight.com">Contact</a></nav><small>© 2026 SMS Moonlight.</small></div></footer>
+      <section className="cta" id="contact"><div className="ctaRing r1" /><div className="ctaRing r2" /><div className="shell"><span className="ctaLogo" aria-hidden="true"><img src="/zencraft-logo.png" alt="" /></span><small>YOUR SCHOOL, IN A BETTER RHYTHM</small><h2>Ready to make school<br />management feel <em>lighter?</em></h2><p>See how SMS Moonlight can fit your school today—and grow with you tomorrow.</p><div><a className="btn orange" href="mailto:hello@smsmoonlight.com?subject=SMS%20Moonlight%20Demo">Book your free demo →</a><a className="btn ghost" href="#pricing">View pricing</a></div></div></section>
+      <footer><div className="shell"><div className="footerBrand"><img src="/zencraft-logo.png" alt="ZenCraft Web Services" /><span>Creator of SMS Moonlight</span></div><p>School management, beautifully simplified.</p><nav><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="mailto:hello@smsmoonlight.com">Contact</a></nav><small>© 2026 ZenCraft Web Services.</small></div></footer>
     </main>
   );
 }

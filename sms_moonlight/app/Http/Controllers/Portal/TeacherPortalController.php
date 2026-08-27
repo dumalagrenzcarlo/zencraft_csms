@@ -26,6 +26,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -306,7 +307,7 @@ class TeacherPortalController extends Controller
             ? $request->string('attendance_to')->toString()
             : (! $request->filled('attendance_from') ? now()->toDateString() : '');
 
-        $availableStudents = \App\Models\Student::query()->active()->orderBy('lastname')->orderBy('firstname')->get();
+        $availableStudents = Student::query()->active()->orderBy('lastname')->orderBy('firstname')->get();
         $assignments = Assignment::query()
             ->withCount('submissions')
             ->when($selectedClass, fn ($query) => $query->where('class_id', $selectedClass->id))
@@ -399,11 +400,22 @@ class TeacherPortalController extends Controller
     public function storeStudent(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'student_id' => ['nullable', 'integer', 'exists:students,id'],
+            'student_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('students', 'id')->where(
+                    fn ($query) => $query->whereNull('archived')->orWhere('archived', false)
+                ),
+            ],
             'student_ids' => ['nullable', 'array'],
-            'student_ids.*' => ['integer', 'exists:students,id'],
+            'student_ids.*' => [
+                'integer',
+                Rule::exists('students', 'id')->where(
+                    fn ($query) => $query->whereNull('archived')->orWhere('archived', false)
+                ),
+            ],
             'class_id' => ['required', 'integer', 'exists:classes,id'],
-            'school_year_id' => ['required', 'integer', 'exists:school_year,id'],
+            'school_year_id' => ['nullable', 'integer', 'exists:school_year,id'],
         ]);
 
         $studentIds = collect($data['student_ids'] ?? [])
@@ -426,33 +438,34 @@ class TeacherPortalController extends Controller
             ->where('user_id', Auth::guard('moonshine')->id())
             ->value('id');
 
-        abort_unless(
-            ClassesModel::query()
-                ->where('id', $data['class_id'])
-                ->where('adviser_id', $teacherId)
-                ->exists(),
-            404
-        );
+        $class = ClassesModel::query()
+            ->whereKey($data['class_id'])
+            ->where('adviser_id', $teacherId)
+            ->where('active', true)
+            ->where('status', 'active')
+            ->firstOrFail();
 
-        foreach ($studentIds as $studentId) {
-            ClassStudent::updateOrCreate(
-                [
-                    'student_id' => $studentId,
-                    'class_id' => $data['class_id'],
-                    'school_year_id' => $data['school_year_id'],
-                ],
-                [
-                    'hidden_grade' => false,
-                    'notes' => null,
-                ]
-            );
-        }
+        DB::transaction(function () use ($class, $studentIds): void {
+            foreach ($studentIds as $studentId) {
+                ClassStudent::updateOrCreate(
+                    [
+                        'student_id' => $studentId,
+                        'class_id' => $class->id,
+                    ],
+                    [
+                        'school_year_id' => $class->school_year_id,
+                        'hidden_grade' => false,
+                        'notes' => null,
+                    ]
+                );
+            }
+        });
 
         return redirect()
             ->route('teacher.dashboard', [
                 'tab' => 'students',
-                'class_id' => $data['class_id'],
-                'school_year_id' => $data['school_year_id'],
+                'class_id' => $class->id,
+                'school_year_id' => $class->school_year_id,
             ])
             ->with('success', $studentIds->count() === 1 ? 'Student added successfully.' : $studentIds->count().' students added successfully.');
     }
@@ -574,7 +587,12 @@ class TeacherPortalController extends Controller
         $data = $request->validate([
             'grades' => ['required', 'array'],
             'grades.*.id' => ['nullable', 'integer'],
-            'grades.*.subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'grades.*.subject_id' => [
+                'required',
+                'integer',
+                Rule::exists('class_subjects', 'subject_id')
+                    ->where(fn ($query) => $query->where('class_id', $classStudent->class_id)),
+            ],
             'action' => ['nullable', 'string', 'in:save,submit'],
             ...$termRules,
         ]);
@@ -741,7 +759,7 @@ class TeacherPortalController extends Controller
 
     public function exportStudentQrCodes(Request $request, StudentWorkbookExporter $exporter): Response
     {
-        abort_unless(\App\Models\Setting::enabled('qr_code_enabled', true), 404);
+        abort_unless(Setting::enabled('qr_code_enabled', true), 404);
 
         $classStudents = $this->teacherClassStudentsQuery($request)
             ->with('student')

@@ -75,6 +75,9 @@ class AdminAuthenticationBoundaryTest extends TestCase
 
         $response->assertRedirect(route('moonshine.login'));
         $this->assertGuest('moonshine');
+
+        $this->get(route('admin.students.template'))
+            ->assertRedirect(route('moonshine.login'));
     }
 
     public function test_portal_user_cannot_access_custom_admin_routes(): void

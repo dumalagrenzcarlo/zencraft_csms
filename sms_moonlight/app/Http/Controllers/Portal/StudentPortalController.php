@@ -145,7 +145,19 @@ class StudentPortalController extends Controller
                 ->values();
         }
 
-        $grades = $student->classStudentGrades->sortByDesc('created_at')->values();
+        $grades = ClassStudentGrade::query()
+            ->with('subject')
+            ->where('student_id', $student->id)
+            ->whereHas('class.classStudents', function ($query) use ($student): void {
+                $query
+                    ->where('student_id', $student->id)
+                    ->whereNotNull('grades_submitted_at')
+                    ->where(function ($visibility): void {
+                        $visibility->whereNull('hidden_grade')->orWhere('hidden_grade', false);
+                    });
+            })
+            ->orderByDesc('updated_at')
+            ->get();
         $quizzes = $quizModuleEnabled
             ? $student->studentQuizAnswers->sortByDesc('created_at')->values()
             : collect();
@@ -299,6 +311,7 @@ class StudentPortalController extends Controller
             ->firstOrFail();
 
         abort_unless($classStudent->student_id === $student->id, 404);
+        abort_if($classStudent->hidden_grade || ! $classStudent->gradesAreSubmitted(), 404);
 
         $classStudent->load(['student', 'class.grade', 'class.classSubjects.subject', 'schoolYear']);
 
@@ -343,7 +356,7 @@ class StudentPortalController extends Controller
             ->firstOrFail();
 
         abort_unless($classStudent->student_id === $student->id, 404);
-        abort_if((bool) $classStudent->hidden_grade, 404);
+        abort_if($classStudent->hidden_grade || ! $classStudent->gradesAreSubmitted(), 404);
 
         $classStudent->load(['student', 'class.grade', 'class.classSubjects.subject', 'schoolYear', 'grades.subject']);
 

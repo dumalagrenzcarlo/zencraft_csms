@@ -1,5 +1,14 @@
 <?php
 
+use App\Http\Middleware\EnforcePortalDomain;
+use App\Http\Middleware\EnsureTenantActive;
+use App\Http\Middleware\MoonshineAuthenticate;
+use App\Http\Middleware\TenantRouteContext;
+use App\MoonShine\AuthPipelines\RedirectIntendedAfterLogin;
+use App\MoonShine\Layouts\CustomLayout;
+use App\MoonShine\Pages\AdminLoginPage;
+use App\MoonShine\Pages\Dashboard;
+use App\MoonShine\Themes\HananPalette;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -12,9 +21,7 @@ use MoonShine\Crud\Forms\LoginForm;
 use MoonShine\Laravel\Exceptions\MoonShineNotFoundException;
 use MoonShine\Laravel\Http\Middleware\Authenticate;
 use MoonShine\Laravel\Http\Middleware\ChangeLocale;
-use MoonShine\Laravel\Layouts\AppLayout;
 use MoonShine\Laravel\Models\MoonshineUser;
-use MoonShine\Laravel\Pages\Dashboard;
 use MoonShine\Laravel\Pages\ErrorPage;
 use MoonShine\Laravel\Pages\ProfilePage;
 
@@ -42,8 +49,9 @@ return [
 
     // Middleware
     'middleware' => [
-        App\Http\Middleware\TenantRouteContext::class,
-        App\Http\Middleware\EnsureTenantActive::class,
+        TenantRouteContext::class,
+        EnsureTenantActive::class,
+        EnforcePortalDomain::class,
         EncryptCookies::class,
         AddQueuedCookiesToResponse::class,
         StartSession::class,
@@ -71,10 +79,10 @@ return [
         'model' => MoonshineUser::class,
         'middleware' => [
             Authenticate::class,
-            App\Http\Middleware\MoonshineAuthenticate::class,
+            MoonshineAuthenticate::class,
         ],
         'pipelines' => [
-            App\MoonShine\AuthPipelines\RedirectIntendedAfterLogin::class,
+            RedirectIntendedAfterLogin::class,
         ],
     ],
 
@@ -87,8 +95,8 @@ return [
     ],
 
     // Layout, palette, pages, forms
-    'layout' => App\MoonShine\Layouts\CustomLayout::class,
-    'palette' => App\MoonShine\Themes\HananPalette::class,
+    'layout' => CustomLayout::class,
+    'palette' => HananPalette::class,
 
     'forms' => [
         'login' => LoginForm::class,
@@ -96,9 +104,9 @@ return [
     ],
 
     'pages' => [
-        'dashboard' => App\MoonShine\Pages\Dashboard::class,
+        'dashboard' => Dashboard::class,
         'profile' => ProfilePage::class,
-        'login' => App\MoonShine\Pages\AdminLoginPage::class,
+        'login' => AdminLoginPage::class,
         'error' => ErrorPage::class,
     ],
 

@@ -11,6 +11,15 @@ This Laravel 12 application contains the ZenCraft SaaS control plane and the ten
 - Isolated tenant storage and queue context
 - Initial school administrator provisioning
 
+## Core school MVP
+
+- Tenant-local people and account management
+- School-year, grade-level, subject, and class configuration
+- Transactional student enrollment with one class per school year
+- Adviser-owned rosters, grade entry, submission, and attendance views
+- Student class, released-grade, and personal-attendance views
+- Portal-domain separation and core academic data-integrity constraints
+
 ## Main features
 
 - Student, teacher, staff, class, subject, and school-year management

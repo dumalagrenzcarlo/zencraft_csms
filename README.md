@@ -26,6 +26,21 @@ The first milestone provides:
 
 See [`docs/MILESTONE_1.md`](./docs/MILESTONE_1.md) for architecture and setup details.
 
+## Milestone 2
+
+The core school MVP provides tenant-safe workflows for:
+
+- Administrators, teachers, staff, and students
+- School years, grade levels, subjects, and classes
+- One-class-per-school-year student enrollment
+- Adviser-scoped class rosters
+- Draft and submitted grades with controlled student release
+- Student and class attendance views
+- Administrator, teacher, and student portal boundaries
+- Database constraints and cross-school isolation for core academic data
+
+See [`docs/MILESTONE_2.md`](./docs/MILESTONE_2.md) for supported workflows and acceptance criteria.
+
 ## Security
 
 Environment files, SQLite databases, tenant databases, logs, dependencies, backups, and build output are excluded from version control. Never commit production credentials or student data.

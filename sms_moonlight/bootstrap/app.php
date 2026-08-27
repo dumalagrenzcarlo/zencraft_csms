@@ -1,5 +1,15 @@
 <?php
 
+use App\Http\Middleware\DetectPortal;
+use App\Http\Middleware\EnforcePortalDomain;
+use App\Http\Middleware\EnsureCentralDomain;
+use App\Http\Middleware\EnsurePlatformUser;
+use App\Http\Middleware\EnsurePortalPasswordChanged;
+use App\Http\Middleware\EnsureTenantActive;
+use App\Http\Middleware\MoonshineAuthenticate;
+use App\Http\Middleware\StudentAuth;
+use App\Http\Middleware\TeacherAuth;
+use App\Http\Middleware\TenantRouteContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -38,19 +48,20 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $middleware->alias([
-            'central.domain' => \App\Http\Middleware\EnsureCentralDomain::class,
-            'platform.user' => \App\Http\Middleware\EnsurePlatformUser::class,
-            'tenant.active' => \App\Http\Middleware\EnsureTenantActive::class,
-            'tenant.context' => \App\Http\Middleware\TenantRouteContext::class,
-            'portal.detect' => \App\Http\Middleware\DetectPortal::class,
-            'moonshine.auth' => \App\Http\Middleware\MoonshineAuthenticate::class,
-            'student.auth' => \App\Http\Middleware\StudentAuth::class,
-            'teacher.auth' => \App\Http\Middleware\TeacherAuth::class,
-            'portal.password.changed' => \App\Http\Middleware\EnsurePortalPasswordChanged::class,
+            'central.domain' => EnsureCentralDomain::class,
+            'platform.user' => EnsurePlatformUser::class,
+            'tenant.active' => EnsureTenantActive::class,
+            'tenant.context' => TenantRouteContext::class,
+            'portal.detect' => DetectPortal::class,
+            'portal.domain' => EnforcePortalDomain::class,
+            'moonshine.auth' => MoonshineAuthenticate::class,
+            'student.auth' => StudentAuth::class,
+            'teacher.auth' => TeacherAuth::class,
+            'portal.password.changed' => EnsurePortalPasswordChanged::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->respond(function (Response $response, \Throwable $exception, Request $request): Response {
+        $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
             if ($response->getStatusCode() !== 419 || $request->expectsJson()) {
                 return $response;
             }

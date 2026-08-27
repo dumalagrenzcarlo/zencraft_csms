@@ -20,6 +20,7 @@
 /sms_moonlight/storage/backups
 /sms_moonlight/storage/pail
 /sms_moonlight/vendor
+/sms_moonlight/database/tenant_*
 /.codex-work
 /docs_work
 /outputs

@@ -37,6 +37,14 @@ This Laravel 12 application contains the ZenCraft SaaS control plane and the ten
 - Atomic, complete, one-time quiz submissions
 - Request-time configurable-module enforcement compatible with route caching
 
+## Commercial launch
+
+- Enforced subscription, grace-period, cancellation, and school lifecycle states
+- Guided onboarding with an operator readiness score
+- Audited, time-limited support access scoped to selected schools
+- Portable per-tenant backups with checksum and manifest verification
+- Migration reconciliation inventory and production health/readiness checks
+
 ## Main features
 
 - Student, teacher, staff, class, subject, and school-year management
@@ -96,3 +104,5 @@ composer test
 Project guides, test plans, and database cleanup scripts are available in [`deliverables`](./deliverables/).
 
 Milestone architecture and acceptance criteria are available in the repository-level [`docs`](../docs/) folder.
+
+See [`MILESTONE_5.md`](../docs/MILESTONE_5.md) and the [`PRODUCTION_RUNBOOK.md`](../docs/PRODUCTION_RUNBOOK.md) for commercial operations and deployment.

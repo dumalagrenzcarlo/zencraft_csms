@@ -7,7 +7,10 @@ namespace App\Http\Controllers\Platform;
 use App\Models\Plan;
 use App\Models\PlatformAuditLog;
 use App\Models\Tenant;
+use App\Models\User;
+use App\Services\OnboardingReadiness;
 use App\Services\SchoolProvisioner;
+use App\Services\SupportAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -16,10 +19,11 @@ use Illuminate\View\View;
 
 class SchoolController extends Controller
 {
-    public function index(): View
+    public function index(Request $request, SupportAccess $supportAccess): View
     {
         return view('platform.schools.index', [
-            'schools' => Tenant::query()->with(['currentPlan', 'domains'])->latest()->paginate(20),
+            'schools' => $supportAccess->scopeVisible(Tenant::query(), $request->user())
+                ->with(['currentPlan', 'domains'])->latest()->paginate(20),
         ]);
     }
 
@@ -57,10 +61,18 @@ class SchoolController extends Controller
         return redirect()->route('platform.schools.show', $school)->with('status', 'School workspace provisioned successfully.');
     }
 
-    public function show(Tenant $school): View
+    public function show(Request $request, Tenant $school, SupportAccess $supportAccess, OnboardingReadiness $readiness): View
     {
+        abort_unless($supportAccess->allows($request->user(), $school), 403);
+
         return view('platform.schools.show', [
-            'school' => $school->load(['currentPlan', 'domains', 'subscriptions.plan']),
+            'school' => $school->load([
+                'currentPlan', 'currentSubscription.plan', 'domains',
+                'supportAccessGrants.supportUser', 'backups',
+            ]),
+            'readiness' => $readiness->inspect($school),
+            'plans' => Plan::query()->where('active', true)->orderBy('monthly_price_cents')->get(),
+            'supportUsers' => User::query()->where('role', 'support')->where('active', true)->orderBy('name')->get(),
         ]);
     }
 }

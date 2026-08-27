@@ -4,7 +4,11 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
+
+Schedule::command('saas:backup --verify')->dailyAt('02:00')->withoutOverlapping();
+Schedule::command('saas:subscriptions:reconcile')->hourly()->withoutOverlapping();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -20,29 +24,29 @@ Artisan::command('uploads:repair {path? : Optional upload path, for example sett
         File::ensureDirectoryExists($publicRoot);
     }
 
-    $this->info('Public uploads root: ' . $publicRoot);
-    $this->info('Legacy storage root: ' . $legacyRoot);
+    $this->info('Public uploads root: '.$publicRoot);
+    $this->info('Legacy storage root: '.$legacyRoot);
 
     if (filled($path)) {
         $relativePath = ltrim(str_replace('\\', '/', (string) $path), '/');
         $publicPath = Storage::disk('public')->path($relativePath);
-        $legacyPath = storage_path('app/public/' . $relativePath);
+        $legacyPath = storage_path('app/public/'.$relativePath);
 
-        $this->line('Checking: ' . $relativePath);
+        $this->line('Checking: '.$relativePath);
 
         if (is_file($publicPath)) {
-            $this->info('FOUND in public uploads: ' . $publicPath);
+            $this->info('FOUND in public uploads: '.$publicPath);
 
             return self::SUCCESS;
         }
 
         if (is_file($legacyPath)) {
-            $this->warn('FOUND only in legacy storage: ' . $legacyPath);
+            $this->warn('FOUND only in legacy storage: '.$legacyPath);
 
             if (! $checkOnly) {
                 File::ensureDirectoryExists(dirname($publicPath));
                 File::copy($legacyPath, $publicPath);
-                $this->info('Copied to public uploads: ' . $publicPath);
+                $this->info('Copied to public uploads: '.$publicPath);
             }
 
             return self::SUCCESS;
@@ -63,6 +67,7 @@ Artisan::command('uploads:repair {path? : Optional upload path, for example sett
 
             if (is_file($publicPath)) {
                 $alreadyPublic++;
+
                 continue;
             }
 
@@ -94,7 +99,7 @@ Artisan::command('uploads:repair {path? : Optional upload path, for example sett
         }
 
         $existsInPublic = is_file(Storage::disk('public')->path($relativePath));
-        $existsInLegacy = is_file(storage_path('app/public/' . $relativePath));
+        $existsInLegacy = is_file(storage_path('app/public/'.$relativePath));
         $status = $existsInPublic ? 'public' : ($existsInLegacy ? 'legacy only' : 'missing');
 
         $this->line("{$settingName}: {$relativePath} [{$status}]");

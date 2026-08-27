@@ -8,9 +8,12 @@ use App\Models\MoonshineUser;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\OnboardingReadiness;
 use App\Services\SchoolProvisioner;
+use App\Services\TenantBackupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class SchoolProvisioningTest extends TestCase
@@ -58,6 +61,23 @@ class SchoolProvisioningTest extends TestCase
             ]);
             $this->assertSame('Sample Academy', DB::table('settings')->where('settingName', 'school_name')->value('settingValue'));
         });
+
+        $readiness = app(OnboardingReadiness::class)->synchronize($school);
+        $this->assertSame(3, $readiness['completed']);
+        $this->assertSame('in_progress', $school->fresh()->onboarding_status);
+
+        Storage::fake('local');
+        $backup = app(TenantBackupService::class)->create($school);
+        $this->assertTrue(app(TenantBackupService::class)->verify($backup));
+        $this->assertSame('verified', $backup->fresh()->status);
+        Storage::disk('local')->assertExists($backup->path);
+
+        $this->actingAs($owner)->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->get(route('platform.schools.show', $school))
+            ->assertOk()
+            ->assertSee('Guided onboarding')
+            ->assertSee('Billing lifecycle')
+            ->assertSee('Verified backups');
     }
 
     public function test_school_databases_do_not_share_records(): void

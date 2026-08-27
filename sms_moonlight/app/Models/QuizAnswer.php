@@ -18,6 +18,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class QuizAnswer extends Model
 {
+    public const CREATED_AT = 'record_created';
+
+    public const UPDATED_AT = 'record_updated';
+
     protected $table = 'quiz_answers';
 
     /**

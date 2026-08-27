@@ -72,8 +72,22 @@ class CollegeEnrollment extends Model
         static::saving(function (CollegeEnrollment $enrollment): void {
             $program = CollegeProgram::query()->find($enrollment->program_id);
 
+            if (! $program
+                || ! Student::query()->whereKey($enrollment->student_id)->exists()
+                || ! SchoolYear::query()->whereKey($enrollment->school_year_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'student_id' => 'The college enrollment requires a valid student, course, and school year.',
+                ]);
+            }
+
+            if (! array_key_exists((string) $enrollment->status, self::STATUSES)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Select a valid enrollment status.',
+                ]);
+            }
+
             if ((int) $enrollment->year_level < 1
-                || ($program && (int) $enrollment->year_level > (int) $program->duration_years)) {
+                || (int) $enrollment->year_level > (int) $program->duration_years) {
                 throw ValidationException::withMessages([
                     'year_level' => 'The year level exceeds the selected program duration.',
                 ]);

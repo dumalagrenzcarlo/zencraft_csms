@@ -208,6 +208,116 @@ class SchoolProvisioningTest extends TestCase
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
+
+            $programId = DB::table('college_programs')->insertGetId([
+                'code' => 'TENANT-ONE-BSIT',
+                'name' => 'Tenant One Information Technology',
+                'duration_years' => 4,
+                'active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $programCourseId = DB::table('college_curriculum_subjects')->insertGetId([
+                'program_id' => $programId,
+                'course_code' => 'IT101',
+                'description' => 'Tenant One Computing',
+                'year_level' => 1,
+                'semester' => 1,
+                'units' => 3,
+                'course_order' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $offeringId = DB::table('college_course_offerings')->insertGetId([
+                'school_year_id' => $schoolYearId,
+                'program_course_id' => $programCourseId,
+                'instructor_id' => $adviserId,
+                'section' => 'Tenant One College',
+                'capacity' => 40,
+                'active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $collegeEnrollmentId = DB::table('college_enrollments')->insertGetId([
+                'student_id' => $studentId,
+                'program_id' => $programId,
+                'school_year_id' => $schoolYearId,
+                'semester' => 1,
+                'year_level' => 1,
+                'status' => 'enrolled',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            DB::table('college_enrollment_courses')->insert([
+                'enrollment_id' => $collegeEnrollmentId,
+                'program_course_id' => $programCourseId,
+                'offering_id' => $offeringId,
+                'prelim_grade' => 90,
+                'midterm_grade' => 91,
+                'prefinal_grade' => 92,
+                'final_grade' => 93,
+                'remarks' => 'Passed',
+                'grades_submitted_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            DB::table('student_payment_histories')->insert([
+                'student_id' => $studentId,
+                'payment_type_id' => DB::table('payment_types')->where('name', 'Cash')->value('id'),
+                'payment_date' => $now,
+                'amount' => 1000,
+                'reference' => 'TENANT-ONE-OR',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            $quizGroupId = DB::table('quiz_group')->insertGetId([
+                'school_year_id' => $schoolYearId,
+                'grade_id' => $gradeId,
+                'week' => 'Week 1',
+                'record_created' => $now,
+                'record_updated' => $now,
+            ]);
+            $quizDayId = DB::table('quiz_group_days')->insertGetId([
+                'title' => 'Tenant One Quiz',
+                'quiz_group_id' => $quizGroupId,
+                'day' => 'Monday',
+                'quiz_duration_seconds' => 600,
+                'record_created' => $now,
+                'record_updated' => $now,
+            ]);
+            $quizId = DB::table('quizzes')->insertGetId([
+                'question' => 'Tenant one question?',
+                'record_created' => $now,
+                'record_updated' => $now,
+            ]);
+            $answerId = DB::table('quiz_answers')->insertGetId([
+                'answer' => 'Tenant one answer',
+                'record_created' => $now,
+                'record_updated' => $now,
+            ]);
+            DB::table('quiz_quiz_answers')->insert([
+                'quiz_id' => $quizId,
+                'answer_id' => $answerId,
+                'is_correct_answer' => true,
+                'record_created' => $now,
+                'record_updated' => $now,
+            ]);
+            DB::table('quiz_quiz_group_days')->insert([
+                'quiz_id' => $quizId,
+                'quiz_group_days_id' => $quizDayId,
+                'record_order' => 1,
+                'record_created' => $now,
+                'record_updated' => $now,
+            ]);
+            DB::table('student_quiz_answers')->insert([
+                'quiz_group_days_id' => $quizDayId,
+                'quiz_id' => $quizId,
+                'answer_id' => $answerId,
+                'student_id' => $studentId,
+                'record_created' => $now,
+                'record_updated' => $now,
+            ]);
         });
 
         $second->run(function (): void {
@@ -223,6 +333,12 @@ class SchoolProvisioningTest extends TestCase
             $this->assertSame(0, DB::table('assignments')->count());
             $this->assertSame(0, DB::table('assignment_submissions')->count());
             $this->assertSame(0, DB::table('announcements')->count());
+            $this->assertSame(0, DB::table('college_programs')->count());
+            $this->assertSame(0, DB::table('college_enrollments')->count());
+            $this->assertSame(0, DB::table('college_enrollment_courses')->count());
+            $this->assertSame(0, DB::table('student_payment_histories')->count());
+            $this->assertSame(0, DB::table('quiz_group')->count());
+            $this->assertSame(0, DB::table('student_quiz_answers')->count());
         });
     }
 

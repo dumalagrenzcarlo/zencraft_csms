@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 /**
  * @property int $id
@@ -43,5 +44,21 @@ class PaymentType extends Model
     public function studentPaymentHistories(): HasMany
     {
         return $this->hasMany(StudentPaymentHistory::class, 'payment_type_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (PaymentType $type): void {
+            $type->name = trim($type->name);
+
+            if ($type->name === '' || self::query()
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($type->name)])
+                ->when($type->exists, fn ($query) => $query->whereKeyNot($type->getKey()))
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'name' => 'Payment type names are required and must be unique.',
+                ]);
+            }
+        });
     }
 }

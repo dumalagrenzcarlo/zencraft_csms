@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Class StudentPaymentHistory
@@ -67,5 +68,35 @@ class StudentPaymentHistory extends Model
     public function paymentType(): BelongsTo
     {
         return $this->belongsTo(PaymentType::class, 'payment_type_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (StudentPaymentHistory $payment): void {
+            if (! Student::query()->whereKey($payment->student_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'student_id' => 'Select a valid student.',
+                ]);
+            }
+
+            if ($payment->payment_type_id !== null
+                && ! PaymentType::query()->whereKey($payment->payment_type_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'payment_type_id' => 'Select a valid payment type.',
+                ]);
+            }
+
+            if (! is_numeric($payment->amount) || (float) $payment->amount <= 0) {
+                throw ValidationException::withMessages([
+                    'amount' => 'The payment amount must be greater than zero.',
+                ]);
+            }
+
+            if (! $payment->payment_date || $payment->payment_date->isAfter(now()->addDay())) {
+                throw ValidationException::withMessages([
+                    'payment_date' => 'Enter a valid payment date that is not in the future.',
+                ]);
+            }
+        });
     }
 }

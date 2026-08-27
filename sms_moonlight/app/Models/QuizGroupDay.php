@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Class QuizGroupDay
@@ -22,6 +23,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class QuizGroupDay extends Model
 {
+    public const CREATED_AT = 'record_created';
+
+    public const UPDATED_AT = 'record_updated';
+
     protected $table = 'quiz_group_days';
 
     /**
@@ -88,5 +93,20 @@ class QuizGroupDay extends Model
     public function studentQuizAnswers(): HasMany
     {
         return $this->hasMany(StudentQuizAnswer::class, 'quiz_group_days_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (QuizGroupDay $day): void {
+            if (! in_array($day->day, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], true)) {
+                throw ValidationException::withMessages(['day' => 'Select a valid school day.']);
+            }
+
+            if ((int) $day->quiz_duration_seconds < 30 || (int) $day->quiz_duration_seconds > 14400) {
+                throw ValidationException::withMessages([
+                    'quiz_duration_seconds' => 'Quiz duration must be between 30 seconds and four hours.',
+                ]);
+            }
+        });
     }
 }

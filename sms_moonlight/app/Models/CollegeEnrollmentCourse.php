@@ -10,6 +10,15 @@ use Illuminate\Validation\ValidationException;
 
 class CollegeEnrollmentCourse extends Model
 {
+    private const GRADE_FIELDS = [
+        'prelim_grade',
+        'midterm_grade',
+        'prefinal_grade',
+        'final_grade',
+    ];
+
+    private const REMARKS = ['Passed', 'Failed', 'Incomplete', 'Dropped'];
+
     protected $fillable = [
         'enrollment_id',
         'program_course_id',
@@ -61,6 +70,48 @@ class CollegeEnrollmentCourse extends Model
     protected static function booted(): void
     {
         static::saving(function (CollegeEnrollmentCourse $course): void {
+            if ($course->exists
+                && filled($course->getOriginal('grades_submitted_at'))
+                && $course->isDirty([
+                    ...self::GRADE_FIELDS,
+                    'remarks',
+                    'enrollment_id',
+                    'program_course_id',
+                    'offering_id',
+                    'grades_submitted_at',
+                    'grades_submitted_by',
+                ])) {
+                throw ValidationException::withMessages([
+                    'grades' => 'Submitted college grades are locked and can no longer be edited.',
+                ]);
+            }
+
+            foreach (self::GRADE_FIELDS as $field) {
+                $value = $course->{$field};
+
+                if ($value !== null && (! is_numeric($value) || (float) $value < 0 || (float) $value > 100)) {
+                    throw ValidationException::withMessages([
+                        $field => 'College grades must be between 0 and 100.',
+                    ]);
+                }
+            }
+
+            if ($course->remarks !== null && ! in_array($course->remarks, self::REMARKS, true)) {
+                throw ValidationException::withMessages([
+                    'remarks' => 'Select a valid college grade remark.',
+                ]);
+            }
+
+            if (filled($course->grades_submitted_at)) {
+                foreach (self::GRADE_FIELDS as $field) {
+                    if ($course->{$field} === null) {
+                        throw ValidationException::withMessages([
+                            $field => 'All college grades are required before submission.',
+                        ]);
+                    }
+                }
+            }
+
             $enrollment = CollegeEnrollment::query()->find($course->enrollment_id);
             $offering = $course->offering_id
                 ? CollegeCourseOffering::query()->find($course->offering_id)

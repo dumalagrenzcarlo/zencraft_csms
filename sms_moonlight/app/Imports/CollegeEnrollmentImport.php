@@ -59,6 +59,13 @@ class CollegeEnrollmentImport implements ToCollection, WithMultipleSheets
         }
 
         $headerRow = $rows->shift();
+
+        if ($rows->count() > 5000) {
+            throw ValidationException::withMessages([
+                'file' => 'A college enrollment import can contain at most 5,000 data rows.',
+            ]);
+        }
+
         $headerIndexes = $this->headerIndexes($headerRow);
         $missingHeaders = array_diff(self::REQUIRED_HEADERS, array_keys($headerIndexes));
 

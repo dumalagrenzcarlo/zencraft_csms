@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Models\StudentPaymentHistory;
+use App\Support\CsvCell;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -43,7 +44,7 @@ class PaymentExportController extends Controller
                 ->orderByDesc('id')
                 ->chunk(500, function ($payments) use ($output): void {
                     foreach ($payments as $payment) {
-                        fputcsv($output, [
+                        fputcsv($output, CsvCell::row([
                             $payment->id,
                             trim(($payment->student?->firstname ?? '').' '.($payment->student?->lastname ?? '')),
                             $payment->student?->lrn,
@@ -52,7 +53,7 @@ class PaymentExportController extends Controller
                             number_format((float) $payment->amount, 2, '.', ''),
                             $payment->reference,
                             $payment->notes,
-                        ]);
+                        ]));
                     }
                 });
 

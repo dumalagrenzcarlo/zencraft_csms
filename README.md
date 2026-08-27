@@ -55,6 +55,18 @@ Operational parity provides tenant-safe workflows for:
 
 See [`docs/MILESTONE_3.md`](./docs/MILESTONE_3.md) for security decisions, supported workflows, and acceptance criteria.
 
+## Milestone 4
+
+Complete operational parity provides:
+
+- Tenant-safe college courses, schedules, enrollment, and submitted grades
+- Validated payment records and temporary administrator-bound payment access
+- Complete, atomic, one-time quiz submissions
+- Request-time enforcement for college, payments, quizzes, staff, and staff attendance
+- Cross-school isolation for college, payment, and quiz records
+
+See [`docs/MILESTONE_4.md`](./docs/MILESTONE_4.md) for configuration, security decisions, and acceptance criteria.
+
 ## Security
 
 Environment files, SQLite databases, tenant databases, logs, dependencies, backups, and build output are excluded from version control. Never commit production credentials or student data.

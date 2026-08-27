@@ -29,6 +29,14 @@ This Laravel 12 application contains the ZenCraft SaaS control plane and the ten
 - Guarded student imports and formula-safe CSV exports
 - Tenant-scoped reports and audience-aware announcements
 
+## Complete parity
+
+- College course, schedule, enrollment, capacity, and grade integrity
+- Immutable submitted college grades
+- Positive, dated payment records and expiring administrator-bound payment access
+- Atomic, complete, one-time quiz submissions
+- Request-time configurable-module enforcement compatible with route caching
+
 ## Main features
 
 - Student, teacher, staff, class, subject, and school-year management

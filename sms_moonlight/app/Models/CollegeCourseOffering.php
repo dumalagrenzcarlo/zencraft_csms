@@ -13,6 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 class CollegeCourseOffering extends Model
 {
+    protected $attributes = [
+        'capacity' => 40,
+        'active' => true,
+    ];
+
     protected $fillable = [
         'school_year_id',
         'program_course_id',
@@ -93,6 +98,18 @@ class CollegeCourseOffering extends Model
             if (! $instructorExists) {
                 throw ValidationException::withMessages([
                     'instructor_id' => 'College classes must be assigned to an instructor or professor.',
+                ]);
+            }
+
+            if (! SchoolYear::query()->whereKey($offering->school_year_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'school_year_id' => 'Select a valid school year.',
+                ]);
+            }
+
+            if ((int) $offering->capacity < 1) {
+                throw ValidationException::withMessages([
+                    'capacity' => 'Class capacity must be at least one student.',
                 ]);
             }
         });

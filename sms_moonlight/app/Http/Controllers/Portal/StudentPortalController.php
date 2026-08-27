@@ -20,10 +20,13 @@ use App\Models\StudentQuizAnswer;
 use App\Services\OperationalFileStorage;
 use App\Support\StudentAcademicContextResolver;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -463,31 +466,70 @@ class StudentPortalController extends Controller
 
         $quizGroupDay->load('quiz_quiz_group_days.quiz.quizQuizAnswers');
 
+        $questionIds = $quizGroupDay->quiz_quiz_group_days
+            ->pluck('quiz_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+        $submittedQuestionIds = collect(array_keys($data['answers']))
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($questionIds->isEmpty()
+            || $submittedQuestionIds->count() !== $questionIds->count()
+            || $submittedQuestionIds->diff($questionIds)->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'answers' => 'Answer every question in this quiz before submitting.',
+            ]);
+        }
+
+        if (StudentQuizAnswer::query()
+            ->where('quiz_group_days_id', $quizGroupDay->id)
+            ->where('student_id', $student->id)
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'answers' => 'This quiz has already been submitted.',
+            ]);
+        }
+
+        $answers = [];
+
         foreach ($quizGroupDay->quiz_quiz_group_days as $quizLink) {
             $quizId = (int) $quizLink->quiz_id;
             $answerId = (int) ($data['answers'][$quizId] ?? 0);
-
-            if ($answerId < 1) {
-                continue;
-            }
 
             $answerBelongsToQuiz = $quizLink->quiz?->quizQuizAnswers
                 ->contains(fn ($item): bool => (int) $item->answer_id === $answerId) ?? false;
 
             if (! $answerBelongsToQuiz) {
-                continue;
+                throw ValidationException::withMessages([
+                    "answers.{$quizId}" => 'Select a valid answer for this question.',
+                ]);
             }
 
-            StudentQuizAnswer::updateOrCreate(
-                [
-                    'quiz_group_days_id' => $quizGroupDay->id,
-                    'quiz_id' => $quizId,
-                    'student_id' => $student->id,
-                ],
-                [
-                    'answer_id' => $answerId,
-                ]
-            );
+            $answers[] = [
+                'quiz_group_days_id' => $quizGroupDay->id,
+                'quiz_id' => $quizId,
+                'student_id' => $student->id,
+                'answer_id' => $answerId,
+            ];
+        }
+
+        try {
+            DB::transaction(function () use ($answers): void {
+                foreach ($answers as $answer) {
+                    StudentQuizAnswer::create($answer);
+                }
+            });
+        } catch (QueryException $exception) {
+            if (in_array((string) $exception->getCode(), ['23000', '23505'], true)) {
+                throw ValidationException::withMessages([
+                    'answers' => 'This quiz has already been submitted.',
+                ]);
+            }
+
+            throw $exception;
         }
 
         return redirect()

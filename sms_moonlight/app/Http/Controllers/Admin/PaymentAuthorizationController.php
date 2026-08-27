@@ -50,6 +50,7 @@ class PaymentAuthorizationController extends Controller
         }
 
         RateLimiter::clear($rateLimitKey);
+        $request->session()->regenerate();
         PaymentAccess::unlock($request, $authorizedUser);
 
         return redirect()->to($this->intendedUrl($request));
@@ -57,9 +58,21 @@ class PaymentAuthorizationController extends Controller
 
     private function intendedUrl(Request $request): string
     {
-        return (string) $request->session()->pull(
+        $default = route('moonshine.crud.index', ['resourceUri' => 'student-payment-history-resource']);
+        $intended = (string) $request->session()->pull(
             'payments.intended_url',
-            route('moonshine.crud.index', ['resourceUri' => 'student-payment-history-resource'])
+            $default
         );
+
+        $host = parse_url($intended, PHP_URL_HOST);
+        $scheme = parse_url($intended, PHP_URL_SCHEME);
+
+        if ($scheme !== null && ! in_array(strtolower((string) $scheme), ['http', 'https'], true)) {
+            return $default;
+        }
+
+        return $host === null || strcasecmp((string) $host, $request->getHost()) === 0
+            ? $intended
+            : $default;
     }
 }

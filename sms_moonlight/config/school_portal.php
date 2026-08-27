@@ -44,5 +44,6 @@ return [
 
     'payments' => [
         'authorized_admin_username' => env('PAYMENTS_ADMIN_USERNAME'),
+        'unlock_minutes' => max(1, (int) env('PAYMENTS_UNLOCK_MINUTES', 15)),
     ],
 ];

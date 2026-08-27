@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Class StudentQuizAnswer
@@ -21,6 +22,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class StudentQuizAnswer extends Model
 {
+    public const CREATED_AT = 'record_created';
+
+    public const UPDATED_AT = 'record_updated';
+
     protected $table = 'student_quiz_answers';
 
     /**
@@ -86,5 +91,25 @@ class StudentQuizAnswer extends Model
     public function quizGroupDay(): BelongsTo
     {
         return $this->belongsTo(QuizGroupDay::class, 'quiz_group_days_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (StudentQuizAnswer $answer): void {
+            $questionIsAssigned = QuizQuizGroupDay::query()
+                ->where('quiz_group_days_id', $answer->quiz_group_days_id)
+                ->where('quiz_id', $answer->quiz_id)
+                ->exists();
+            $answerBelongsToQuestion = QuizQuizAnswer::query()
+                ->where('quiz_id', $answer->quiz_id)
+                ->where('answer_id', $answer->answer_id)
+                ->exists();
+
+            if (! $questionIsAssigned || ! $answerBelongsToQuestion) {
+                throw ValidationException::withMessages([
+                    'answers' => 'Every answer must belong to a question assigned to this quiz.',
+                ]);
+            }
+        });
     }
 }

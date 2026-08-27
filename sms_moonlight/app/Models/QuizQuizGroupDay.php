@@ -20,6 +20,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class QuizQuizGroupDay extends Model
 {
+    public const CREATED_AT = 'record_created';
+
+    public const UPDATED_AT = 'record_updated';
+
     protected $table = 'quiz_quiz_group_days';
 
     /**

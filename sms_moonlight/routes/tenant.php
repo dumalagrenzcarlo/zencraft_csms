@@ -152,8 +152,10 @@ Route::middleware([
             Route::get('/classes/{classStudent}/grades-modal', [StudentPortalController::class, 'gradesModal'])
                 ->name('student.classes.grades.modal');
 
-            Route::get('/college-classes/{collegeEnrollmentCourse}/grades-modal', [StudentPortalController::class, 'collegeGradesModal'])
-                ->name('student.college-classes.grades.modal');
+            Route::middleware('feature:college_module')->group(function (): void {
+                Route::get('/college-classes/{collegeEnrollmentCourse}/grades-modal', [StudentPortalController::class, 'collegeGradesModal'])
+                    ->name('student.college-classes.grades.modal');
+            });
 
             Route::get('/classes/{classStudent}/download-grades', [StudentPortalController::class, 'downloadGrades'])
                 ->name('student.classes.grades.download');
@@ -167,10 +169,10 @@ Route::middleware([
             Route::get('/assignment-submissions/{submission}/download', [StudentPortalController::class, 'downloadSubmission'])
                 ->name('student.assignment-submissions.download');
 
-            if (config('school_portal.features.quiz_module')) {
+            Route::middleware('feature:quiz_module')->group(function (): void {
                 Route::post('/quiz-group-days/{quizGroupDay}/submit', [StudentPortalController::class, 'submitQuiz'])
                     ->name('student.quiz.submit');
-            }
+            });
 
             Route::get('/change-password', [StudentAuthController::class, 'showChangePasswordForm'])
                 ->name('student.password.form');
@@ -258,11 +260,13 @@ Route::middleware([
             Route::get('/students/{id}/grades-modal', [TeacherPortalController::class, 'gradesModal'])
                 ->name('teacher.students.grades.modal');
 
-            Route::get('/college-grades/{collegeEnrollmentCourse}', [TeacherPortalController::class, 'collegeGradesModal'])
-                ->name('teacher.college-grades.modal');
+            Route::middleware('feature:college_module')->group(function (): void {
+                Route::get('/college-grades/{collegeEnrollmentCourse}', [TeacherPortalController::class, 'collegeGradesModal'])
+                    ->name('teacher.college-grades.modal');
 
-            Route::post('/college-grades/{collegeEnrollmentCourse}', [TeacherPortalController::class, 'saveCollegeGrades'])
-                ->name('teacher.college-grades.save');
+                Route::post('/college-grades/{collegeEnrollmentCourse}', [TeacherPortalController::class, 'saveCollegeGrades'])
+                    ->name('teacher.college-grades.save');
+            });
 
             Route::post('/assignments', [TeacherPortalController::class, 'storeAssignment'])
                 ->name('teacher.assignments.store');
@@ -330,13 +334,13 @@ Route::middleware([
 
         Route::middleware(['moonshine.auth'])->group(function (): void {
 
-            if (config('school_portal.features.quiz_module')) {
+            Route::middleware('feature:quiz_module')->group(function (): void {
                 Route::get('/quiz-groups/{quizGroup}/scores', [QuizGroupScoreController::class, 'show'])
                     ->name('admin.quiz-groups.scores');
 
                 Route::post('/quiz-group-days/{quizGroupDay}/questions/sort', [QuizGroupDayQuestionSortController::class, 'store'])
                     ->name('admin.quiz-group-days.questions.sort');
-            }
+            });
 
             /*
             |--------------------------------------------------------------------------
@@ -381,13 +385,13 @@ Route::middleware([
             Route::post('/archived-students/{student}/restore', [StudentArchiveController::class, 'restore'])
                 ->name('admin.student-archive.restore');
 
-            Route::post('/college-enrolments/import', [CollegeEnrollmentImportController::class, 'import'])
-                ->name('admin.college-enrollments.import');
+            Route::middleware('feature:college_module')->group(function (): void {
+                Route::post('/college-enrolments/import', [CollegeEnrollmentImportController::class, 'import'])
+                    ->name('admin.college-enrollments.import');
 
-            Route::get('/college-enrolments/template', [CollegeEnrollmentImportController::class, 'template'])
-                ->name('admin.college-enrollments.template');
+                Route::get('/college-enrolments/template', [CollegeEnrollmentImportController::class, 'template'])
+                    ->name('admin.college-enrollments.template');
 
-            if (config('school_portal.features.college_module')) {
                 Route::get('/college-grades/export', [CollegeExportController::class, 'grades'])
                     ->name('admin.college-grades.export');
 
@@ -396,29 +400,31 @@ Route::middleware([
 
                 Route::get('/college-courses/export', [CollegeExportController::class, 'courses'])
                     ->name('admin.college-courses.export');
-            }
+            });
 
             Route::get('/advisers/export', [StudentImportExportController::class, 'exportAdvisers'])
                 ->name('admin.advisers.export');
 
-            Route::get('/staff/export', [StudentImportExportController::class, 'exportStaff'])
-                ->name('admin.staff.export');
+            Route::middleware('feature:staff_module')->group(function (): void {
+                Route::get('/staff/export', [StudentImportExportController::class, 'exportStaff'])
+                    ->name('admin.staff.export');
+            });
 
-            if (config('school_portal.features.teacher_staff_attendance')) {
+            Route::middleware(['feature:staff_module', 'feature:teacher_staff_attendance'])->group(function (): void {
                 Route::get('/staff-attendance/export', StaffAttendanceExportController::class)
                     ->name('admin.staff-attendance.export');
-            }
+            });
 
-            Route::get('/payments/authorize', [PaymentAuthorizationController::class, 'show'])
-                ->name('admin.payments.authorization');
+            Route::middleware('feature:payments_module')->group(function (): void {
+                Route::get('/payments/authorize', [PaymentAuthorizationController::class, 'show'])
+                    ->name('admin.payments.authorization');
 
-            Route::post('/payments/authorize', [PaymentAuthorizationController::class, 'authorize'])
-                ->name('admin.payments.authorize');
+                Route::post('/payments/authorize', [PaymentAuthorizationController::class, 'authorize'])
+                    ->name('admin.payments.authorize');
 
-            if (config('school_portal.features.payments_module')) {
                 Route::get('/payments/export', PaymentExportController::class)
                     ->name('admin.payments.export');
-            }
+            });
         });
     };
 

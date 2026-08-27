@@ -3,6 +3,7 @@
 use App\Http\Middleware\DetectPortal;
 use App\Http\Middleware\EnforcePortalDomain;
 use App\Http\Middleware\EnsureCentralDomain;
+use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsurePlatformUser;
 use App\Http\Middleware\EnsurePortalPasswordChanged;
 use App\Http\Middleware\EnsureTenantActive;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'central.domain' => EnsureCentralDomain::class,
+            'feature' => EnsureFeatureEnabled::class,
             'platform.user' => EnsurePlatformUser::class,
             'tenant.active' => EnsureTenantActive::class,
             'tenant.context' => TenantRouteContext::class,

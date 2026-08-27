@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Class AssignmentSubmission
@@ -66,5 +67,23 @@ class AssignmentSubmission extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (AssignmentSubmission $submission): void {
+            $assignment = Assignment::query()->find($submission->assignment_id);
+
+            $isEnrolled = $assignment && ClassStudent::query()
+                ->where('class_id', $assignment->class_id)
+                ->where('student_id', $submission->student_id)
+                ->exists();
+
+            if (! $assignment?->sent_at || ! $isEnrolled) {
+                throw ValidationException::withMessages([
+                    'assignment_id' => 'Submissions require a sent assignment and an active class enrollment.',
+                ]);
+            }
+        });
     }
 }

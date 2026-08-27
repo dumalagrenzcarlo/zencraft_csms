@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ApplicationDataController extends Controller
@@ -33,7 +34,7 @@ class ApplicationDataController extends Controller
     // ----------------------------
     public function getSchoolData(Request $request): JsonResponse
     {
-        if (!$this->validateToken($request)) {
+        if (! $this->validateToken($request)) {
             return response()->json('Access Denied', 403);
         }
 
@@ -41,7 +42,7 @@ class ApplicationDataController extends Controller
             ->whereIn('settingName', [
                 'school_id',
                 'school_name',
-                'school_logo'
+                'school_logo',
             ])
             ->pluck('settingValue', 'settingName');
 
@@ -63,18 +64,19 @@ class ApplicationDataController extends Controller
             return response('QR code features are disabled.', 404);
         }
 
-        if (!$this->validateToken($request)) {
+        if (! $this->validateToken($request)) {
             return response('Access Denied', 403);
         }
 
-        $baseDir = public_path('uploads/students');
+        $baseDir = Storage::disk('public')->path('students');
 
-        if (!is_dir($baseDir)) {
+        if (! is_dir($baseDir)) {
             return response('Student folder not found.', 404);
         }
 
-        $zip = new \ZipArchive();
-        $zipName = storage_path('app/cache/student_images_' . time() . '.zip');
+        $zip = new \ZipArchive;
+        Storage::disk('local')->makeDirectory('cache');
+        $zipName = Storage::disk('local')->path('cache/student_images_'.now()->format('YmdHisv').'.zip');
 
         if ($zip->open($zipName, \ZipArchive::CREATE) !== true) {
             return response('Could not create zip file.', 500);
@@ -84,7 +86,9 @@ class ApplicationDataController extends Controller
 
         $zip->close();
 
-        return response()->download($zipName, 'student_images.zip');
+        return response()
+            ->download($zipName, 'student_images.zip')
+            ->deleteFileAfterSend(true);
     }
 
     // ----------------------------
@@ -131,9 +135,9 @@ class ApplicationDataController extends Controller
                 continue;
             }
 
-            $fullPath = realpath($folder . DIRECTORY_SEPARATOR . $item);
+            $fullPath = realpath($folder.DIRECTORY_SEPARATOR.$item);
 
-            if (!$fullPath) {
+            if (! $fullPath) {
                 continue;
             }
 

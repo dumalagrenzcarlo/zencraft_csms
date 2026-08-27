@@ -173,6 +173,38 @@ class SchoolProvisioningTest extends TestCase
                 'currentdate' => '2026-08-27',
                 'logged_time' => '07:55:00',
                 'source' => 'manual',
+                'source_event_id' => 'tenant-one-attendance-event',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            $assignmentId = DB::table('assignments')->insertGetId([
+                'class_id' => $classId,
+                'adviser_id' => $adviserId,
+                'title' => 'Tenant One Assignment',
+                'notes' => null,
+                'file_path' => 'assignments/tenant-one.pdf',
+                'file_name' => 'tenant-one.pdf',
+                'deadline' => $now->copy()->addWeek(),
+                'sent_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            DB::table('assignment_submissions')->insert([
+                'assignment_id' => $assignmentId,
+                'student_id' => $studentId,
+                'file_path' => 'assignment-submissions/tenant-one.pdf',
+                'file_name' => 'tenant-one.pdf',
+                'notes' => null,
+                'submitted_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            DB::table('announcements')->insert([
+                'title' => 'Tenant One Announcement',
+                'content' => 'Visible only inside the first tenant.',
+                'expiry_date' => $now->copy()->addWeek(),
+                'target_audience' => 'both',
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -188,6 +220,9 @@ class SchoolProvisioningTest extends TestCase
             $this->assertSame(0, DB::table('class_students')->count());
             $this->assertSame(0, DB::table('class_student_grades')->count());
             $this->assertSame(0, DB::table('attendance_record')->count());
+            $this->assertSame(0, DB::table('assignments')->count());
+            $this->assertSame(0, DB::table('assignment_submissions')->count());
+            $this->assertSame(0, DB::table('announcements')->count());
         });
     }
 

@@ -7,7 +7,7 @@ const path = require("path");
 const { pathToFileURL } = require("url");
 const Database = require("better-sqlite3");
 const {
-  buildAttendanceIdentity,
+  buildAttendanceSyncRecord,
   getPersonDisplayLabel,
   isDuplicateScan,
   normalizeDirectoryRecord
@@ -368,13 +368,7 @@ async function syncAttendanceRecords(scansToSync, settings) {
   console.log("Scans to sync:", scansToSync);
 
   // Laravel expects array of records (same as before)
-  const payload = scansToSync.map(scan => {
-    return {
-      ...buildAttendanceIdentity(scan),
-      currentdate: scan.currentdate,
-      time: scan.time
-    };
-  });
+  const payload = scansToSync.map(buildAttendanceSyncRecord);
 
   console.log("Payload:", payload);
 
@@ -561,7 +555,9 @@ async function updatePeople(settings) {
     const authCode = settings?.server?.authCode;
     if (!serverUrl || !authCode) return 0;
 
-    const response = await fetch(`${serverUrl}/api/autosync?token=${authCode}`);
+    const response = await fetch(`${serverUrl}/api/autosync`, {
+      headers: { "X-API-AUTHCODE": authCode }
+    });
     if (!response.ok) throw new Error("Failed to fetch student, teacher, and staff data");
 
     const records = await response.json();

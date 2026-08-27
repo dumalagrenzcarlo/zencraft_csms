@@ -6,8 +6,10 @@ namespace App\Models;
 
 use App\Support\AnnouncementHtml;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Class Announcement
@@ -77,5 +79,28 @@ class Announcement extends Model
             get: fn (?string $value): string => AnnouncementHtml::sanitize($value),
             set: fn (?string $value): string => AnnouncementHtml::sanitize($value),
         );
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where(function (Builder $active): void {
+            $active->whereNull('expiry_date')->orWhere('expiry_date', '>=', now());
+        });
+    }
+
+    public function scopeForAudience(Builder $query, string $audience): Builder
+    {
+        return $query->whereIn('target_audience', [$audience, 'both']);
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Announcement $announcement): void {
+            if (! in_array($announcement->target_audience, ['students', 'teachers', 'both'], true)) {
+                throw ValidationException::withMessages([
+                    'target_audience' => 'Select students, teachers, or both.',
+                ]);
+            }
+        });
     }
 }

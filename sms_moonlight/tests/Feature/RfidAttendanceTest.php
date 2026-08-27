@@ -72,6 +72,71 @@ class RfidAttendanceTest extends TestCase
         $this->assertDatabaseCount('attendance_record', 1);
     }
 
+    public function test_scanner_token_validation_uses_the_authorization_header(): void
+    {
+        $this->getJson('/api/validatetoken')
+            ->assertUnauthorized()
+            ->assertJson(['valid' => false]);
+
+        $this->withHeader('X-API-AUTHCODE', self::TOKEN)
+            ->getJson('/api/validatetoken')
+            ->assertOk()
+            ->assertJson(['valid' => true]);
+    }
+
+    public function test_scanner_event_id_makes_retries_idempotent_beyond_the_duplicate_window(): void
+    {
+        $studentId = $this->createStudent('000123456789', 'EVENT-CARD');
+        $date = now()->toDateString();
+        $eventId = 'scanner-event-0001';
+
+        $first = [
+            'records' => [[
+                'student_id' => $studentId,
+                'currentdate' => $date,
+                'time' => '07:00:00',
+                'event_id' => $eventId,
+            ]],
+        ];
+
+        $this->withHeader('X-API-AUTHCODE', self::TOKEN)
+            ->postJson('/api/attendance/sync', $first)
+            ->assertOk()
+            ->assertJson(['inserted' => 1, 'skipped' => 0]);
+
+        $first['records'][0]['time'] = '08:00:00';
+
+        $this->withHeader('X-API-AUTHCODE', self::TOKEN)
+            ->postJson('/api/attendance/sync', $first)
+            ->assertOk()
+            ->assertJson(['inserted' => 0, 'skipped' => 1]);
+
+        $this->assertDatabaseCount('attendance_record', 1);
+        $this->assertDatabaseHas('attendance_record', [
+            'source_event_id' => $eventId,
+            'logged_time' => '07:00:00',
+        ]);
+    }
+
+    public function test_scanner_rejects_records_outside_the_offline_sync_window(): void
+    {
+        $studentId = $this->createStudent('000123456789', 'OLD-CARD');
+
+        $this->withHeader('X-API-AUTHCODE', self::TOKEN)
+            ->postJson('/api/attendance/sync', [
+                'records' => [[
+                    'student_id' => $studentId,
+                    'currentdate' => now()->subDays(91)->toDateString(),
+                    'time' => '07:00:00',
+                    'event_id' => 'scanner-event-too-old',
+                ]],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('records.0.currentdate');
+
+        $this->assertDatabaseCount('attendance_record', 0);
+    }
+
     public function test_teacher_rfid_scan_records_teacher_attendance(): void
     {
         $teacherId = $this->createTeacher('Teacher Maria', '100200300');

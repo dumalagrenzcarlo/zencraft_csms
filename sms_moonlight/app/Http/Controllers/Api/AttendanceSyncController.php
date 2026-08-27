@@ -9,6 +9,7 @@ use App\Models\Setting;
 use App\Support\RfidCardUid;
 use App\Support\TeacherStaffAttendance;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -26,21 +27,7 @@ class AttendanceSyncController extends Controller
             return response()->json(['message' => 'QR code and RFID features are disabled.'], 404);
         }
 
-        $token = (string) (
-            $request->input('token')
-            ?? $request->query('token')
-            ?? ''
-        );
-
-        $expectedToken = (string) DB::table('settings')
-            ->where('settingName', 'api_authcode')
-            ->value('settingValue');
-
-        if (
-            $token === ''
-            || $expectedToken === ''
-            || ! hash_equals($expectedToken, $token)
-        ) {
+        if (! $this->isAuthorized($request)) {
             return response()->json([
                 'message' => 'Access Denied',
             ], 401);
@@ -143,6 +130,7 @@ class AttendanceSyncController extends Controller
                 'records.*.rfid_card_uid' => ['nullable', 'string', 'max:100'],
                 'records.*.card_uid' => ['nullable', 'string', 'max:100'],
                 'records.*.uid' => ['nullable', 'string', 'max:100'],
+                'records.*.event_id' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:\-]+$/'],
                 'records.*.currentdate' => ['required', 'date_format:Y-m-d'],
                 'records.*.time' => ['required', 'date_format:H:i:s'],
             ]
@@ -177,24 +165,34 @@ class AttendanceSyncController extends Controller
             ], 422);
         }
 
-        $inserted = 0;
-        $skipped = 0;
+        $dateErrors = $this->validateRecordDates($resolvedRecords);
 
-        foreach ($resolvedRecords as $record) {
-            $created = $this->insertAttendanceLogIfAllowed(
-                $record['student_id'],
-                $record['adviser_id'],
-                (string) $record['currentdate'],
-                (string) $record['time'],
-                (string) $record['source'],
-            );
-
-            if ($created) {
-                $inserted++;
-            } else {
-                $skipped++;
-            }
+        if ($dateErrors !== []) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $dateErrors,
+            ], 422);
         }
+
+        [$inserted, $skipped] = DB::transaction(function () use ($resolvedRecords): array {
+            $inserted = 0;
+            $skipped = 0;
+
+            foreach ($resolvedRecords as $record) {
+                $created = $this->insertAttendanceLogIfAllowed(
+                    $record['student_id'],
+                    $record['adviser_id'],
+                    (string) $record['currentdate'],
+                    (string) $record['time'],
+                    (string) $record['source'],
+                    filled($record['event_id'] ?? null) ? (string) $record['event_id'] : null,
+                );
+
+                $created ? $inserted++ : $skipped++;
+            }
+
+            return [$inserted, $skipped];
+        });
 
         return response()->json([
             'message' => 'Synchronization Complete',
@@ -285,11 +283,13 @@ class AttendanceSyncController extends Controller
                 'rfid_card_uid' => $uid,
                 'currentdate' => $request->input('currentdate', now()->toDateString()),
                 'time' => $request->input('time', now()->format('H:i:s')),
+                'event_id' => $request->input('event_id'),
             ],
             [
                 'rfid_card_uid' => ['required', 'string', 'max:100'],
                 'currentdate' => ['required', 'date_format:Y-m-d'],
                 'time' => ['required', 'date_format:H:i:s'],
+                'event_id' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:\-]+$/'],
             ]
         );
 
@@ -301,6 +301,15 @@ class AttendanceSyncController extends Controller
         }
 
         $data = $validator->validated();
+        $dateErrors = $this->validateRecordDates([$data]);
+
+        if ($dateErrors !== []) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $dateErrors,
+            ], 422);
+        }
+
         $identity = $this->resolveIdentity(['rfid_card_uid' => $data['rfid_card_uid']]);
 
         if (isset($identity['error'])) {
@@ -315,6 +324,7 @@ class AttendanceSyncController extends Controller
             $data['currentdate'],
             $data['time'],
             'rfid',
+            $data['event_id'] ?? null,
         );
 
         return response()->json([
@@ -458,7 +468,12 @@ class AttendanceSyncController extends Controller
         string $date,
         string $time,
         string $source,
+        ?string $sourceEventId = null,
     ): bool {
+        if ($sourceEventId !== null && DB::table('attendance_record')->where('source_event_id', $sourceEventId)->exists()) {
+            return false;
+        }
+
         $lastRecord = DB::table('attendance_record')
             ->when(
                 $studentId,
@@ -478,17 +493,26 @@ class AttendanceSyncController extends Controller
             }
         }
 
-        DB::table('attendance_record')->insert([
-            'student_id' => $studentId,
-            'adviser_id' => $adviserId,
-            'currentdate' => $date,
-            'logged_time' => $time,
-            'source' => $source,
-            'amlogin' => '00:00:00',
-            'amlogout' => '00:00:00',
-            'pmlogin' => '00:00:00',
-            'pmlogout' => '00:00:00',
-        ]);
+        try {
+            DB::table('attendance_record')->insert([
+                'student_id' => $studentId,
+                'adviser_id' => $adviserId,
+                'currentdate' => $date,
+                'logged_time' => $time,
+                'source' => $source,
+                'source_event_id' => $sourceEventId,
+                'amlogin' => '00:00:00',
+                'amlogout' => '00:00:00',
+                'pmlogin' => '00:00:00',
+                'pmlogout' => '00:00:00',
+            ]);
+        } catch (QueryException $exception) {
+            if ($sourceEventId !== null && in_array((string) $exception->getCode(), ['23000', '23505'], true)) {
+                return false;
+            }
+
+            throw $exception;
+        }
 
         return true;
     }
@@ -511,5 +535,28 @@ class AttendanceSyncController extends Controller
         return $authcode !== ''
             && $expectedAuthcode !== ''
             && hash_equals($expectedAuthcode, $authcode);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $records
+     * @return array<string, list<string>>
+     */
+    private function validateRecordDates(array $records): array
+    {
+        $earliest = now()->subDays(90)->startOfDay();
+        $latest = now()->addDay()->endOfDay();
+        $errors = [];
+
+        foreach ($records as $index => $record) {
+            $date = Carbon::createFromFormat('Y-m-d', (string) $record['currentdate'])->startOfDay();
+
+            if ($date->lt($earliest) || $date->gt($latest)) {
+                $errors["records.$index.currentdate"] = [
+                    'Scanner records must be within the last 90 days and cannot be more than one day in the future.',
+                ];
+            }
+        }
+
+        return $errors;
     }
 }

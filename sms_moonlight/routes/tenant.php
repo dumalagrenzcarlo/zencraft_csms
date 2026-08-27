@@ -49,6 +49,16 @@ $serveUpload = static function (string $path) {
         abort(404);
     }
 
+    $privatePrefixes = [
+        'assignments/',
+        'assignment-submissions/',
+        'application-updates/',
+    ];
+
+    foreach ($privatePrefixes as $prefix) {
+        abort_if(str_starts_with(strtolower($path), $prefix), 404);
+    }
+
     $candidates = [
         Storage::disk('public')->path($path),
         public_path('uploads/'.$path),

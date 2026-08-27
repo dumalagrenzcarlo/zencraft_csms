@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Imports\StudentImport;
 use App\Models\Adviser;
+use App\Models\Setting;
 use App\Models\Student;
 use App\Services\Exports\StudentGradesPdfExporter;
 use App\Services\Exports\StudentWorkbookExporter;
+use App\Support\CsvCell;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentImportExportController extends Controller
@@ -82,7 +85,7 @@ class StudentImportExportController extends Controller
 
     public function exportQr()
     {
-        abort_unless(\App\Models\Setting::enabled('qr_code_enabled', true), 404);
+        abort_unless(Setting::enabled('qr_code_enabled', true), 404);
 
         return $this->exporter->downloadQrCodes(
             Student::query()
@@ -150,13 +153,13 @@ class StudentImportExportController extends Controller
                 ->orderBy('id')
                 ->chunk(500, function ($advisers) use ($output): void {
                     foreach ($advisers as $adviser) {
-                        fputcsv($output, [
+                        fputcsv($output, CsvCell::row([
                             $adviser->id,
                             $adviser->user?->username,
                             $adviser->name,
                             $adviser->rank,
                             $adviser->major,
-                        ]);
+                        ]));
                     }
                 });
 
@@ -188,7 +191,7 @@ class StudentImportExportController extends Controller
                 ->orderBy('id')
                 ->chunk(500, function ($staffMembers) use ($output): void {
                     foreach ($staffMembers as $staffMember) {
-                        fputcsv($output, [
+                        fputcsv($output, CsvCell::row([
                             $staffMember->id,
                             $staffMember->rfid_card_uid,
                             $staffMember->name,
@@ -196,7 +199,7 @@ class StudentImportExportController extends Controller
                             $staffMember->major,
                             $staffMember->shift_start_time,
                             $staffMember->shift_end_time,
-                        ]);
+                        ]));
                     }
                 });
 
@@ -204,7 +207,7 @@ class StudentImportExportController extends Controller
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    public function downloadGrades(Request $request, Student $student): \Symfony\Component\HttpFoundation\Response
+    public function downloadGrades(Request $request, Student $student): Response
     {
         $classStudentId = $request->integer('class_student_id');
         $classStudents = $student->classStudents()

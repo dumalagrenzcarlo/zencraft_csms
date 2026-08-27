@@ -37,11 +37,8 @@ class TeacherAuthController extends Controller
         }
 
         $announcements = Announcement::query()
-            ->whereIn('target_audience', ['teachers', 'both'])
-            ->where(function ($query): void {
-                $query->whereNull('expiry_date')
-                    ->orWhere('expiry_date', '>=', now());
-            })
+            ->forAudience('teachers')
+            ->active()
             ->orderByDesc('created_at')
             ->take(5)
             ->get();

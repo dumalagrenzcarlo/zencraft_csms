@@ -8,6 +8,7 @@ use App\Models\CollegeCourseOffering;
 use App\Models\CollegeEnrollmentCourse;
 use App\Models\CollegeProgram;
 use App\Models\CollegeProgramCourse;
+use App\Support\CsvCell;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -208,7 +209,7 @@ class CollegeExportController extends Controller
 
             $query->orderBy('id')->chunkById(500, function ($rows) use ($output, $map): void {
                 foreach ($rows as $row) {
-                    fputcsv($output, $map($row));
+                    fputcsv($output, CsvCell::row($map($row)));
                 }
             });
 

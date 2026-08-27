@@ -20,6 +20,15 @@ This Laravel 12 application contains the ZenCraft SaaS control plane and the ten
 - Student class, released-grade, and personal-attendance views
 - Portal-domain separation and core academic data-integrity constraints
 
+## Operational parity
+
+- Header-authenticated, rate-limited scanner synchronization
+- Durable attendance event replay protection and scan-date validation
+- Adviser-owned assignments and enrollment-checked submissions
+- Tenant-private assignment and submission storage
+- Guarded student imports and formula-safe CSV exports
+- Tenant-scoped reports and audience-aware announcements
+
 ## Main features
 
 - Student, teacher, staff, class, subject, and school-year management
@@ -77,3 +86,5 @@ composer test
 ## Useful documentation
 
 Project guides, test plans, and database cleanup scripts are available in [`deliverables`](./deliverables/).
+
+Milestone architecture and acceptance criteria are available in the repository-level [`docs`](../docs/) folder.

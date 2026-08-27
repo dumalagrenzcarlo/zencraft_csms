@@ -50,6 +50,7 @@ class AttendanceRecord extends Model
         'currentdate',
         'logged_time',
         'source',
+        'source_event_id',
     ];
 
     /**
@@ -76,6 +77,7 @@ class AttendanceRecord extends Model
             'currentdate' => 'datetime',
             'logged_time' => 'datetime',
             'source' => 'string',
+            'source_event_id' => 'string',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

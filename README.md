@@ -41,6 +41,20 @@ The core school MVP provides tenant-safe workflows for:
 
 See [`docs/MILESTONE_2.md`](./docs/MILESTONE_2.md) for supported workflows and acceptance criteria.
 
+## Milestone 3
+
+Operational parity provides tenant-safe workflows for:
+
+- RFID attendance scanning with durable replay protection
+- Private assignment and student-submission files
+- Teacher-owned assignment and roster operations
+- Guarded student CSV imports and spreadsheet-safe exports
+- Tenant-scoped operational and academic reports
+- Audience-aware, expiry-aware announcements
+- Cross-school isolation for operational records
+
+See [`docs/MILESTONE_3.md`](./docs/MILESTONE_3.md) for security decisions, supported workflows, and acceptance criteria.
+
 ## Security
 
 Environment files, SQLite databases, tenant databases, logs, dependencies, backups, and build output are excluded from version control. Never commit production credentials or student data.

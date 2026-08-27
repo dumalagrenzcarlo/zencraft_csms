@@ -19,7 +19,8 @@ class ValidateTokenController extends Controller
         }
 
         $token = (string) (
-            $request->input('token')
+            $request->header('X-API-AUTHCODE')
+            ?? $request->input('token')
             ?? $request->query('token')
             ?? ''
         );
@@ -33,9 +34,15 @@ class ValidateTokenController extends Controller
             || $expectedToken === ''
             || ! hash_equals($expectedToken, $token)
         ) {
-            return response()->json('Access Denied');
+            return response()->json([
+                'valid' => false,
+                'message' => 'Access Denied',
+            ], 401);
         }
 
-        return response()->json('Access Granted');
+        return response()->json([
+            'valid' => true,
+            'message' => 'Access Granted',
+        ]);
     }
 }

@@ -94,8 +94,22 @@ function buildAttendanceIdentity(scan) {
     : { student_id: scan.student_id };
 }
 
+function buildAttendanceSyncRecord(scan) {
+  if (!scan?.timestamp || !scan?.currentdate || !scan?.time) {
+    throw new Error("Attendance record is missing its event ID, date, or time");
+  }
+
+  return {
+    ...buildAttendanceIdentity(scan),
+    currentdate: scan.currentdate,
+    time: scan.time,
+    event_id: scan.timestamp
+  };
+}
+
 module.exports = {
   buildAttendanceIdentity,
+  buildAttendanceSyncRecord,
   getPersonDisplayLabel,
   isDuplicateScan,
   isPersonnelType,

@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Class Assignment
@@ -78,5 +79,18 @@ class Assignment extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(AssignmentSubmission::class, 'assignment_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Assignment $assignment): void {
+            $class = ClassesModel::query()->find($assignment->class_id);
+
+            if (! $class || ! $class->enable_assignments || (int) $class->adviser_id !== (int) $assignment->adviser_id) {
+                throw ValidationException::withMessages([
+                    'class_id' => 'Assignments must belong to an assignment-enabled class owned by the selected adviser.',
+                ]);
+            }
+        });
     }
 }

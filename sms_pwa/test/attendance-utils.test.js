@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildAttendanceIdentity,
+  buildAttendanceSyncRecord,
   getPersonDisplayLabel,
   isDuplicateScan,
   normalizeDirectoryRecord
@@ -54,6 +55,20 @@ test("staff display labels use names and sync with teacher_id", () => {
   assert.deepEqual(buildAttendanceIdentity({ teacher_id: "42" }), { teacher_id: "42" });
 });
 
+test("sync records retain the stable local event ID for replay protection", () => {
+  assert.deepEqual(buildAttendanceSyncRecord({
+    student_id: "12",
+    currentdate: "2026-08-27",
+    time: "07:45:00",
+    timestamp: "2026-08-27T07:45:00.123Z"
+  }), {
+    student_id: "12",
+    currentdate: "2026-08-27",
+    time: "07:45:00",
+    event_id: "2026-08-27T07:45:00.123Z"
+  });
+});
+
 test("personnel can record another attendance scan after ten minutes", () => {
   const staff = { person_type: "staff" };
   const existing = { time: "08:00:00" };
@@ -62,9 +77,9 @@ test("personnel can record another attendance scan after ten minutes", () => {
   assert.equal(isDuplicateScan(staff, existing, "08:10:00"), false);
 });
 
-test("student duplicate behavior remains once per day", () => {
+test("students can record another attendance scan after ten minutes", () => {
   assert.equal(
     isDuplicateScan({ person_type: "student" }, { time: "08:00:00" }, "17:00:00"),
-    true
+    false
   );
 });

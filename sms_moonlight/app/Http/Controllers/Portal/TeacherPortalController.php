@@ -20,14 +20,16 @@ use App\Models\Setting;
 use App\Models\Student;
 use App\Services\Exports\StudentGradesPdfExporter;
 use App\Services\Exports\StudentWorkbookExporter;
+use App\Services\OperationalFileStorage;
+use App\Services\StudentArchiver;
 use App\Support\AttendanceTardySummary;
+use App\Support\CsvCell;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -739,7 +741,7 @@ class TeacherPortalController extends Controller
 
             foreach ($classStudents as $classStudent) {
                 $student = $classStudent->student;
-                fputcsv($handle, [
+                fputcsv($handle, CsvCell::row([
                     $student->lrn ?? '',
                     $student->lastname ?? '',
                     $student->firstname ?? '',
@@ -750,7 +752,7 @@ class TeacherPortalController extends Controller
                     $classStudent->schoolYear->school_year ?? '',
                     $classStudent->hidden_grade ? '1' : '0',
                     $classStudent->notes ?? '',
-                ]);
+                ]));
             }
 
             fclose($handle);
@@ -787,24 +789,27 @@ class TeacherPortalController extends Controller
         );
     }
 
-    public function archiveStudents(Request $request)
+    public function archiveStudents(Request $request, StudentArchiver $archiver): RedirectResponse
     {
+        $data = $request->validate([
+            'class_id' => ['required', 'integer', 'exists:classes,id'],
+        ]);
+
         $teacherId = Adviser::query()
             ->where('user_id', Auth::guard('moonshine')->id())
             ->value('id');
 
-        ClassStudent::query()
-            ->whereHas('class', fn ($query) => $query->where('adviser_id', $teacherId))
-            ->when($request->filled('class_id'), function ($query) use ($request): void {
-                $query->where('class_id', $request->integer('class_id'));
-            })
-            ->update([
-                'archived' => true,
-            ]);
+        $class = ClassesModel::query()
+            ->whereKey($data['class_id'])
+            ->where('adviser_id', $teacherId)
+            ->firstOrFail();
+        $count = $archiver->archiveClass($class);
 
         return redirect()
             ->back()
-            ->with('success', 'Students archived successfully.');
+            ->with('success', $count === 1
+                ? '1 student archived successfully.'
+                : "{$count} students archived successfully.");
     }
 
     public function createSchedule(): View
@@ -848,7 +853,7 @@ class TeacherPortalController extends Controller
             ->with('success', 'Schedule added successfully.');
     }
 
-    public function storeAssignment(Request $request): RedirectResponse
+    public function storeAssignment(Request $request, OperationalFileStorage $files): RedirectResponse
     {
         $data = $request->validate([
             'class_id' => ['required', 'integer', 'exists:classes,id'],
@@ -869,17 +874,23 @@ class TeacherPortalController extends Controller
             ->firstOrFail();
 
         $file = $request->file('file');
-        $path = $file->store('assignments', 'public');
+        $path = $files->store($file, 'assignments');
 
-        Assignment::create([
-            'class_id' => $class->id,
-            'adviser_id' => $teacher->id,
-            'title' => $data['title'],
-            'notes' => $data['notes'] ?? null,
-            'deadline' => $data['deadline'],
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-        ]);
+        try {
+            Assignment::create([
+                'class_id' => $class->id,
+                'adviser_id' => $teacher->id,
+                'title' => $data['title'],
+                'notes' => $data['notes'] ?? null,
+                'deadline' => $data['deadline'],
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+            ]);
+        } catch (\Throwable $exception) {
+            $files->delete($path);
+
+            throw $exception;
+        }
 
         return redirect()
             ->route('teacher.dashboard', ['tab' => 'assignments', 'class_id' => $class->id, 'school_year_id' => $class->school_year_id])
@@ -923,7 +934,7 @@ class TeacherPortalController extends Controller
             ->with('success', 'Assignment updated successfully.');
     }
 
-    public function deleteAssignment(Assignment $assignment): RedirectResponse
+    public function deleteAssignment(Assignment $assignment, OperationalFileStorage $files): RedirectResponse
     {
         $this->ensureTeacherOwnsAssignment($assignment);
         $assignment->load('class');
@@ -940,12 +951,10 @@ class TeacherPortalController extends Controller
 
         $classId = $assignment->class_id;
         $schoolYearId = $assignment->class?->school_year_id;
-
-        if ($assignment->file_path) {
-            Storage::disk('public')->delete($assignment->file_path);
-        }
+        $filePath = $assignment->file_path;
 
         $assignment->delete();
+        $files->delete($filePath);
 
         return redirect()
             ->route('teacher.dashboard', [
@@ -1023,25 +1032,19 @@ class TeacherPortalController extends Controller
         return view('portals.teacher.partials.assignment-summary', compact('assignment', 'classStudents', 'submissions'));
     }
 
-    public function downloadAssignment(Assignment $assignment): BinaryFileResponse
+    public function downloadAssignment(Assignment $assignment, OperationalFileStorage $files): BinaryFileResponse
     {
         $this->ensureTeacherOwnsAssignment($assignment);
 
-        return response()->download(
-            Storage::disk('public')->path($assignment->file_path),
-            $assignment->file_name
-        );
+        return $files->download($assignment->file_path, $assignment->file_name);
     }
 
-    public function downloadSubmission(AssignmentSubmission $submission): BinaryFileResponse
+    public function downloadSubmission(AssignmentSubmission $submission, OperationalFileStorage $files): BinaryFileResponse
     {
         $submission->load('assignment');
         $this->ensureTeacherOwnsAssignment($submission->assignment);
 
-        return response()->download(
-            Storage::disk('public')->path($submission->file_path),
-            $submission->file_name
-        );
+        return $files->download($submission->file_path, $submission->file_name);
     }
 
     private function selectedSchoolYearId(Request $request, $schoolYears): ?int

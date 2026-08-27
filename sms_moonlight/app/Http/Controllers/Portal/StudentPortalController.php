@@ -17,13 +17,13 @@ use App\Models\Notification;
 use App\Models\QuizGroupDay;
 use App\Models\Student;
 use App\Models\StudentQuizAnswer;
+use App\Services\OperationalFileStorage;
 use App\Support\StudentAcademicContextResolver;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -261,11 +261,8 @@ class StudentPortalController extends Controller
             : collect();
 
         $dashboardAnnouncements = Announcement::query()
-            ->whereIn('target_audience', ['students', 'both'])
-            ->where(function ($query): void {
-                $query->whereNull('expiry_date')
-                    ->orWhere('expiry_date', '>=', now());
-            })
+            ->forAudience('students')
+            ->active()
             ->orderByDesc('created_at')
             ->take(3)
             ->get();
@@ -372,13 +369,19 @@ class StudentPortalController extends Controller
         return $pdf->download('student-grades-'.now()->format('Ymd-His').'.pdf');
     }
 
-    public function submitAssignment(Request $request, Assignment $assignment): RedirectResponse
+    public function submitAssignment(Request $request, Assignment $assignment, OperationalFileStorage $files): RedirectResponse
     {
         $student = Student::query()
             ->where('user_id', Auth::guard('moonshine')->id())
             ->firstOrFail();
 
         abort_unless($this->studentCanAccessAssignment($student, $assignment), 404);
+
+        if ($assignment->deadline?->isPast()) {
+            return back()->withErrors([
+                'file' => 'The assignment deadline has passed.',
+            ]);
+        }
 
         $data = $request->validate([
             'notes' => ['nullable', 'string'],
@@ -386,36 +389,42 @@ class StudentPortalController extends Controller
         ]);
 
         $file = $request->file('file');
-        $path = $file->store('assignment-submissions', 'public');
+        $path = $files->store($file, 'assignment-submissions');
 
         $existing = AssignmentSubmission::query()
             ->where('assignment_id', $assignment->id)
             ->where('student_id', $student->id)
             ->first();
 
-        if ($existing && $existing->file_path) {
-            Storage::disk('public')->delete($existing->file_path);
+        try {
+            AssignmentSubmission::updateOrCreate(
+                [
+                    'assignment_id' => $assignment->id,
+                    'student_id' => $student->id,
+                ],
+                [
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'notes' => $data['notes'] ?? null,
+                    'submitted_at' => now(),
+                ]
+            );
+        } catch (\Throwable $exception) {
+            $files->delete($path);
+
+            throw $exception;
         }
 
-        AssignmentSubmission::updateOrCreate(
-            [
-                'assignment_id' => $assignment->id,
-                'student_id' => $student->id,
-            ],
-            [
-                'file_path' => $path,
-                'file_name' => $file->getClientOriginalName(),
-                'notes' => $data['notes'] ?? null,
-                'submitted_at' => now(),
-            ]
-        );
+        if ($existing && $existing->file_path !== $path) {
+            $files->delete($existing->file_path);
+        }
 
         return redirect()
             ->route('student.dashboard', ['tab' => 'assignments'])
             ->with('success', 'Assignment submitted successfully.');
     }
 
-    public function downloadAssignment(Assignment $assignment): BinaryFileResponse
+    public function downloadAssignment(Assignment $assignment, OperationalFileStorage $files): BinaryFileResponse
     {
         $student = Student::query()
             ->where('user_id', Auth::guard('moonshine')->id())
@@ -423,13 +432,10 @@ class StudentPortalController extends Controller
 
         abort_unless($this->studentCanAccessAssignment($student, $assignment), 404);
 
-        return response()->download(
-            Storage::disk('public')->path($assignment->file_path),
-            $assignment->file_name
-        );
+        return $files->download($assignment->file_path, $assignment->file_name);
     }
 
-    public function downloadSubmission(AssignmentSubmission $submission): BinaryFileResponse
+    public function downloadSubmission(AssignmentSubmission $submission, OperationalFileStorage $files): BinaryFileResponse
     {
         $student = Student::query()
             ->where('user_id', Auth::guard('moonshine')->id())
@@ -437,10 +443,7 @@ class StudentPortalController extends Controller
 
         abort_unless((int) $submission->student_id === (int) $student->id, 404);
 
-        return response()->download(
-            Storage::disk('public')->path($submission->file_path),
-            $submission->file_name
-        );
+        return $files->download($submission->file_path, $submission->file_name);
     }
 
     public function submitQuiz(Request $request, QuizGroupDay $quizGroupDay): RedirectResponse

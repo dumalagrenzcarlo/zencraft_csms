@@ -73,14 +73,11 @@
 
         $headerAnnouncements = collect();
         if (($isStudentPortal || $isTeacherPortal) && \Illuminate\Support\Facades\Auth::guard('moonshine')->check()) {
-            $announcementAudiences = $isTeacherPortal ? ['teachers', 'both'] : ['students', 'both'];
+            $announcementAudience = $isTeacherPortal ? 'teachers' : 'students';
 
             $headerAnnouncements = \App\Models\Announcement::query()
-                ->whereIn('target_audience', $announcementAudiences)
-                ->where(function ($query): void {
-                    $query->whereNull('expiry_date')
-                        ->orWhere('expiry_date', '>=', now());
-                })
+                ->forAudience($announcementAudience)
+                ->active()
                 ->orderByDesc('created_at')
                 ->get();
         }

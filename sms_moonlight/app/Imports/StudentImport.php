@@ -4,10 +4,10 @@ namespace App\Imports;
 
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\ENV;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SpreadsheetDate;
 
@@ -27,12 +27,29 @@ class StudentImport implements ToCollection
 
         $rows->shift();
 
+        if ($rows->count() > 5000) {
+            throw ValidationException::withMessages([
+                'file' => 'A student import can contain at most 5,000 data rows.',
+            ]);
+        }
+
+        $lrns = $rows
+            ->map(fn ($row): string => trim((string) ($row[0] ?? '')))
+            ->filter();
+        $duplicateLrns = $lrns->duplicates()->unique()->values();
+
+        if ($duplicateLrns->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'file' => 'Duplicate student numbers were found in the workbook: '.$duplicateLrns->take(10)->implode(', '),
+            ]);
+        }
+
         $defaultPassword = DB::table('settings')
             ->where('settingName', 'default_config_student_password')
             ->value('settingValue') ?? 'student123';
         $defaultPasswordHash = Hash::make($defaultPassword);
         $mustChangePasswordExists = Schema::hasColumn('moonshine_users', 'must_change_password');
-        $appDomain = ENV::get('APP_DOMAIN', 'localhost');
+        $appDomain = preg_replace('/:\d+$/', '', (string) config('saas.tenant_base_domain', 'localhost')) ?: 'localhost';
 
         DB::transaction(function () use ($rows, $defaultPasswordHash, $mustChangePasswordExists, $appDomain): void {
             foreach ($rows as $row) {
@@ -42,6 +59,12 @@ class StudentImport implements ToCollection
                     continue;
                 }
 
+                if (mb_strlen($lrn) > 15) {
+                    throw ValidationException::withMessages([
+                        'file' => "Student number {$lrn} exceeds the 15-character limit.",
+                    ]);
+                }
+
                 $now = now();
                 $fullname = trim(
                     trim((string) ($row[1] ?? '')).' '.
@@ -49,6 +72,12 @@ class StudentImport implements ToCollection
                 );
 
                 $user = DB::table('moonshine_users')->where('username', $lrn)->first();
+
+                if ($user && (int) $user->moonshine_user_role_id !== 3) {
+                    throw ValidationException::withMessages([
+                        'file' => "Student number {$lrn} conflicts with an existing non-student account.",
+                    ]);
+                }
 
                 if (! $user) {
                     $userData = [

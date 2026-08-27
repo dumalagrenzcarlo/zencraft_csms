@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="manifest.json">
+    <title>Attendance Scanner</title>
+
+    <link rel="stylesheet" href="assets/tailwind.css">
+
+    <style>
+        /* ===== Fonts ===== */
+        @font-face {
+            font-family: 'Inter';
+            src: url('./assets/fonts/Inter.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap
+        }
+
+        @font-face {
+            font-family: 'Inter';
+            src: url('./assets/fonts/Inter_Italic.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: italic;
+            font-display: swap
+        }
+
+        @font-face {
+            font-family: 'JetBrains Mono';
+            src: url('./assets/fonts/JetBrainsMono-VariableFont_wght.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap
+        }
+
+        @font-face {
+            font-family: 'JetBrains Mono';
+            src: url('./assets/fonts/JetBrainsMono-Italic-VariableFont_wght.woff2') format('woff2');
+            font-weight: 100 900;
+            font-style: italic;
+            font-display: swap
+        }
+
+        @font-face {
+            font-family: 'Material Symbols Outlined';
+            src: url('./assets/fonts/Material-Outline.woff2') format('woff2');
+            font-weight: 100 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* ===== Material Symbols Icons ===== */
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            line-height: 1;
+            white-space: nowrap;
+            width: 1em;
+            height: 1em;
+            letter-spacing: normal;
+            text-transform: none;
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 48;
+        }
+
+        /* ===== Layout & Body ===== */
+        body {
+            margin: 0;
+            background-color: white;
+            color: black;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body.dark {
+            background-color: black;
+            color: white;
+        }
+
+        .digital-clock {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.07em;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ===== App Shell ===== */
+        .app-shell {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+        }
+
+        .main-view {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.5s;
+        }
+
+        /* =========================================================
+        SIDE PANEL
+        ========================================================= */
+
+        .side-panel {
+            height: 96%;
+            width: 0;
+            overflow: hidden;
+
+            transition: all 0.5s ease;
+
+            /* Light Theme */
+            background: rgba(255, 255, 255, 0.55);
+
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+
+            border-left: 1px solid rgba(255, 255, 255, 0.18);
+
+            color: #111827;
+        }
+
+        /* DARK MODE */
+        .side-panel.dark {
+            background: rgba(10, 10, 10, 0.55);
+
+            border-left: 1px solid rgba(255, 255, 255, 0.06);
+
+            color: #f3f4f6;
+        }
+
+        .side-panel.active {
+            width: 35%;
+            margin-top: 1%;
+            margin-right: 1%;
+            /* adjust for sm/lg as needed */
+        }
+
+        .panel-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* ===== Feedback Overlay ===== */
+        .feedback-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .feedback-overlay.dark {
+            background-color: black;
+        }
+
+        .feedback-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .feedback-overlay div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        /* ===== Table Styling ===== */
+        table {
+            width: 100%;
+            font-size: 0.875rem;
+            /* text-sm */
+            border-collapse: collapse;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 10;
+        }
+
+        thead.dark {
+            background-color: #111827;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 0.5rem 0.5rem;
+            font-size: 0.75rem;
+            /* text-xs */
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #9ca3af;
+            /* neutral-400 */
+        }
+
+        tbody td {
+            padding: 0.5rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* ===== Status Colors ===== */
+        .status-recorded {
+            color: #047857;
+            /* green-700 */
+            background-color: #dcfce7;
+            /* green-100 */
+            border-radius: 9999px;
+            padding: 0.125rem 0.5rem;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-recorded.dark {
+            color: #6ee7b7;
+            background-color: rgba(4, 120, 87, 0.3);
+        }
+
+        .status-duplicate {
+            color: #4b5563;
+            /* gray-600 */
+            background-color: #f3f4f6;
+            /* gray-100 */
+            border-radius: 9999px;
+            padding: 0.125rem 0.5rem;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-duplicate.dark {
+            color: #9ca3af;
+            background-color: #1f2937;
+        }
+
+        .status-failed {
+            color: #b91c1c;
+            /* red-700 */
+            background-color: #fee2e2;
+            /* red-100 */
+            border-radius: 9999px;
+            padding: 0.125rem 0.5rem;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-failed.dark {
+            color: #fca5a5;
+            background-color: rgba(185, 28, 28, 0.3);
+        }
+
+        /* ===== Message Popup ===== */
+        #message-popup {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            width: max-content;
+            min-width: min(28rem, calc(100vw - 2rem));
+            max-width: min(42rem, calc(100vw - 2rem));
+            padding: 1rem 1.25rem;
+            color: #ffffff;
+            border: 2px solid transparent;
+            border-radius: 1rem;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32), 0 4px 12px rgba(0, 0, 0, 0.22);
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -1.25rem) scale(0.96);
+            transition: opacity 180ms ease, transform 220ms ease;
+        }
+
+        #message-popup.message-show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        #message-popup.popup-success {
+            background: #047857;
+            border-color: #6ee7b7;
+        }
+
+        #message-popup.popup-error {
+            background: #b91c1c;
+            border-color: #fca5a5;
+        }
+
+        #message-popup.popup-info {
+            color: #111827;
+            background: #fbbf24;
+            border-color: #fef3c7;
+        }
+
+        .message-popup-icon {
+            display: grid;
+            flex: 0 0 2.75rem;
+            width: 2.75rem;
+            height: 2.75rem;
+            place-items: center;
+            font-size: 1.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 9999px;
+        }
+
+        .message-popup-label {
+            margin-bottom: 0.125rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.85;
+        }
+
+        #message-popup-text {
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #message-popup {
+                transition: opacity 100ms linear;
+            }
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .btn {
+            color: #FFFFFF;
+            background-color: #000000;
+        }
+
+        .btn.dark {
+            color: #000000;
+            background-color: #FFFFFF;
+        }
+
+        .disabled {
+            background: gray !important;
+            cursor: not-allowed;
+        }
+
+
+        /* =========================================================
+   SIDE PANEL TEXT COMPATIBILITY
+   ========================================================= */
+
+        /* LIGHT MODE */
+
+        .side-panel input,
+        .side-panel select {
+            background: rgba(255, 255, 255, 0.65);
+            color: #111827;
+
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .side-panel input::placeholder {
+            color: #6b7280;
+        }
+
+        .side-panel table th {
+            color: #6b7280;
+        }
+
+        .side-panel table td {
+            color: #111827;
+        }
+
+        .side-panel .material-symbols-outlined {
+            color: inherit;
+        }
+
+        /* =========================================================
+   DARK MODE
+   ========================================================= */
+
+        body.dark .side-panel input,
+        body.dark .side-panel select {
+            background: rgba(20, 20, 20, 0.60);
+
+            color: #f9fafb;
+
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        body.dark .side-panel input::placeholder {
+            color: #9ca3af;
+        }
+
+        body.dark .side-panel label,
+        body.dark .side-panel span,
+        body.dark .side-panel p,
+        body.dark .side-panel h3,
+        body.dark .side-panel td {
+            color: #f3f4f6;
+        }
+
+        body.dark .side-panel th {
+            color: #9ca3af;
+        }
+
+        body.dark .side-panel .material-symbols-outlined {
+            color: #f3f4f6;
+        }
+
+        /* Borders */
+        body.dark .side-panel .border,
+        body.dark .side-panel .border-b {
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* =========================================================
+   BUTTON COMPATIBILITY
+   ========================================================= */
+
+        .side-panel .btn {
+            transition:
+                background 0.3s ease,
+                color 0.3s ease,
+                transform 0.2s ease;
+        }
+
+        .side-panel .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Light */
+        body:not(.dark) .side-panel .btn {
+            background: #111827;
+            color: white;
+        }
+
+        /* Dark */
+        body.dark .side-panel .btn {
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        /* =========================================================
+   TABLE HEADER GLASS
+   ========================================================= */
+
+        .side-panel thead {
+            background: rgba(255, 255, 255, 0.45);
+
+            backdrop-filter: blur(10px);
+        }
+
+        body.dark .side-panel thead {
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        /* =========================================================
+   SOFT DYNAMIC BACKGROUND
+   ========================================================= */
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+
+            position: relative;
+            background-size: 400% 400%;
+            animation: gradientMove 18s ease infinite;
+            transition:
+                background 1s ease,
+                color 0.3s ease;
+        }
+
+        /* ===== LIGHT THEME ===== */
+
+        body.morning {
+            background:
+                radial-gradient(circle at top left,
+                    rgba(255, 220, 180, 0.35),
+                    transparent 40%),
+
+                radial-gradient(circle at bottom right,
+                    rgba(255, 200, 220, 0.25),
+                    transparent 45%),
+
+                linear-gradient(135deg,
+                    #f7f7f7,
+                    #f3efe8,
+                    #ece8ff);
+
+            color: black;
+        }
+
+        body.afternoon {
+            background:
+                radial-gradient(circle at top right,
+                    rgba(120, 180, 255, 0.18),
+                    transparent 40%),
+
+                radial-gradient(circle at bottom left,
+                    rgba(170, 255, 220, 0.15),
+                    transparent 45%),
+
+                linear-gradient(135deg,
+                    #eef4f8,
+                    #e8eef5,
+                    #f4f7fa);
+
+            color: black;
+        }
+
+        /* ===== DARK THEME ===== */
+
+        body.evening {
+            background:
+                radial-gradient(circle at top left,
+                    rgba(120, 120, 255, 0.12),
+                    transparent 40%),
+
+                radial-gradient(circle at bottom right,
+                    rgba(255, 120, 180, 0.08),
+                    transparent 45%),
+
+                linear-gradient(135deg,
+                    #1a1d24,
+                    #20242c,
+                    #16181d);
+
+            color: white;
+        }
+
+        /* =========================================================
+   ANIMATED BACKGROUND MOVEMENT
+   ========================================================= */
+
+        @keyframes gradientMove {
+
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* =========================================================
+   SOFT FLOATING BLOBS
+   ========================================================= */
+
+        .bg-blob {
+            position: fixed;
+            border-radius: 9999px;
+            filter: blur(90px);
+
+            opacity: 0.10;
+
+            z-index: 0;
+            pointer-events: none;
+
+            animation: floatBlob 14s ease-in-out infinite;
+        }
+
+        /* Top Left */
+        .blob1 {
+            width: 420px;
+            height: 420px;
+
+            background: #ffffff;
+
+            top: -150px;
+            left: -120px;
+        }
+
+        /* Bottom Right */
+        .blob2 {
+            width: 320px;
+            height: 320px;
+
+            background: #ffe7c2;
+
+            bottom: -100px;
+            right: -80px;
+
+            animation-delay: 3s;
+        }
+
+        /* Middle */
+        .blob3 {
+            width: 260px;
+            height: 260px;
+
+            background: #cfe8ff;
+
+            top: 45%;
+            left: 60%;
+
+            animation-delay: 6s;
+        }
+
+        @keyframes floatBlob {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(30px, -40px);
+            }
+        }
+
+        /* =========================================================
+   GLASSMORPHISM
+   ========================================================= */
+
+        .glass {
+            background: rgba(255, 255, 255, 0.08);
+
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+
+            border: 1px solid rgba(255, 255, 255, 0.08);
+
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Dark mode glass */
+        body.dark .glass {
+            background: rgba(0, 0, 0, 0.18);
+
+            border-color: rgba(255, 255, 255, 0.04);
+        }
+
+        /* =========================================================
+   SOFT OVERLAY FILM
+   ========================================================= */
+
+        body::before {
+            content: '';
+
+            position: fixed;
+            inset: 0;
+
+            pointer-events: none;
+
+            background:
+                linear-gradient(rgba(255, 255, 255, 0.02),
+                    rgba(255, 255, 255, 0.01));
+
+            backdrop-filter: blur(2px);
+
+            z-index: 1;
+        }
+
+        /* =========================================================
+   CONTENT LAYERING
+   ========================================================= */
+
+        header,
+        main,
+        aside {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* =========================================================
+   GREETING
+   ========================================================= */
+
+        #greeting {
+            text-shadow:
+                0 2px 12px rgba(0, 0, 0, 0.15);
+
+            animation: fadeGreeting 0.8s ease;
+
+            opacity: 0.85;
+        }
+
+        @keyframes fadeGreeting {
+
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 0.85;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated Background Blobs -->
+    <div class="bg-blob blob1"></div>
+    <div class="bg-blob blob2"></div>
+    <div class="bg-blob blob3"></div>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden">
+        <div class="btn p-8 rounded-xl flex flex-col items-center gap-4">
+            <span class="material-symbols-outlined text-6xl animate-spin">sync</span>
+            <p class="text-lg font-medium">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Message Popup -->
+    <div id="message-popup" class="popup-info" role="status" aria-live="polite" aria-atomic="true">
+        <span id="message-popup-icon" class="material-symbols-outlined message-popup-icon"
+            aria-hidden="true">info</span>
+        <div>
+            <p id="message-popup-label" class="message-popup-label">Notice</p>
+            <p id="message-popup-text"></p>
+        </div>
+    </div>
+
+    <div class="flex flex-col">
+        <!-- HEADER -->
+        <header style="margin-top: 2%" class="glass mx-4 px-6 py-4 rounded-3xl flex justify-between items-center">
+
+            <!-- LEFT -->
+            <div class="flex items-center gap-4">
+
+                <div
+                    class="w-24 h-24 bg-black dark:bg-white flex items-center justify-center rounded-2xl overflow-hidden">
+                    <img src="" id="school-logo" alt="School Logo"
+                        class="hidden w-full h-full object-contain p-2">
+
+                    <span id="school-logo-placeholder"
+                        class="material-symbols-outlined text-4xl text-white dark:text-black font-black">
+                        school
+                    </span>
+                </div>
+
+                <div class="flex flex-col">
+
+                    <!-- Greeting -->
+                    <div id="greeting"
+                        class="text-xl sm:text-lg font-semibold uppercase tracking-[0.25em] opacity-80 mt-1">
+                        ☀️ Good Morning
+                    </div>
+                    <span id="school-name" class="font-black uppercase tracking-tight text-xl sm:text-2xl">
+                    </span>
+
+                </div>
+            </div>
+
+            <!-- RIGHT -->
+            <div class="flex gap-6 items-center">
+
+                <!-- Sync Indicator -->
+                <div class="relative flex items-center">
+                    <span id="syncSpinner" class="material-symbols-outlined text-3xl animate-spin hidden">
+                        sync
+                    </span>
+
+                    <span id="unsyncedBadge"
+                        class="absolute -top-2 -right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">
+                        0
+                    </span>
+                </div>
+
+                <button id="logsBtn" class="material-symbols-outlined text-4xl hover:scale-110 transition">
+                    list
+                </button>
+
+                <button id="settingsBtn"
+                    class="material-symbols-outlined text-4xl hover:rotate-90 transition duration-300">
+                    settings
+                </button>
+            </div>
+        </header>
+
+        <!-- APP SHELL -->
+        <div class="flex" style="height: 83vh;">
+
+            <!-- MAIN VIEW -->
+            <main class="main-view glass rounded-3xl m-4">
+                <div class="space-y-8 text-center px-4">
+                    <div id="time"
+                        class="digital-clock font-black text-[6rem] sm:text-[10rem] md:text-[10rem] lg:text-[12rem]">
+                        00:00
+                    </div>
+                    <div id="date" class="tracking-widest text-5xl text-neutral-400 uppercase"></div>
+
+                    <div class="space-y-4">
+                        <span class="material-symbols-outlined text-[6rem] opacity-80">qr_code_scanner</span>
+                        <h1 class="text-xl sm:text-3xl uppercase tracking-wide">
+                            Scan ID to record attendance
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- FEEDBACK -->
+                <div id="successOverlay" class="feedback-overlay">
+                    <div class="text-center space-y-6">
+                        <div class="w-40 h-40 border-4 border-green-500 rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[5rem] text-green-500">check</span>
+                        </div>
+                        <h2 class="text-4xl font-black" id="feedbackName"></h2>
+                    </div>
+                </div>
+            </main>
+
+            <!-- SIDE PANEL -->
+            <aside id="sidePanel" class="side-panel rounded-3xl">
+                <div class="panel-content">
+
+                    <!-- LOGS -->
+                    <div id="logsPanel" class="hidden flex-1 flex flex-col">
+                        <div class="p-6 font-bold uppercase tracking-widest text-xl flex justify-between">
+                            Live Attendance Logs
+                            <button onclick="closePanels()" class="material-symbols-outlined text-xl">close</button>
+                        </div>
+
+                        <div class="px-6 flex flex-col gap-4">
+                            <!-- Search -->
+                            <input id="searchInput" type="text" placeholder="Search ID or Status..."
+                                class="p-2 rounded border dark:bg-neutral-900" oninput="renderLogs()">
+
+                            <!-- Table -->
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Student / Teacher / Staff</th>
+                                        <th>Status</th>
+                                        <th class="text-right">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logsBody"></tbody>
+                            </table>
+
+                            <!-- Pagination -->
+                            <div class="flex justify-center gap-2 pt-2">
+                                <button onclick="prevPage()" class="px-2 py-1 border rounded">Prev</button>
+                                <span id="pageIndicator" class="px-2 py-1"></span>
+                                <button onclick="nextPage()" class="px-2 py-1 border rounded">Next</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SETTINGS -->
+                    <div id="settingsPanel" class="hidden flex-1 flex flex-col overflow-y-auto">
+                        <div class="p-6 flex justify-between items-center">
+                            <span class="font-bold uppercase tracking-widest text-xl">Settings</span>
+                            <!-- <button id="morning" onclick="setGreeting('morning')"
+                                class="text-sm px-2 py-1 border rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                                Morning
+                            </button>
+                            <button id="afternoon" onclick="setGreeting('afternoon')"
+                                class="text-sm px-2 py-1 border rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                                Afternoon
+                            </button>
+                            <button id="evening" onclick="setGreeting('evening')"
+                                class="text-sm px-2 py-1 border rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                                Evening
+                            </button> -->
+                            <button onclick="closePanels()" class="material-symbols-outlined text-xl">close</button>
+                        </div>
+
+                        <div class="px-6 pb-2 space-y-4">
+                            <div
+                                class="py-2 mb-2 flex justify-between uppercase border-b border-neutral-200 dark:border-neutral-700">
+                                <h3 class="text-xs font-bold  tracking-widest">Server Settings</h3>
+                                <span id="scanStatus" class="text-xs text-red-500">Disconnected from server</span>
+                            </div>
+                            <!-- Server Settings -->
+                            <div>
+                                <label class="text-xs uppercase tracking-widest">Server URL</label>
+                                <input id="server-url" placeholder="https://portal.com"
+                                    class="w-full mt-1 p-3 rounded border dark:bg-neutral-900" value="" required>
+                            </div>
+
+                            <div>
+                                <label class="text-xs uppercase tracking-widest">Authorization Code</label>
+                                <input type="password" id="auth-code" placeholder="*********"
+                                    class="w-full mt-1 p-3 rounded border dark:bg-neutral-900" value="" required>
+                            </div>
+
+                            <div>
+                                <!-- Test Connection-->
+                                <button id="testConnectionBtn"
+                                    class="w-full py-2 btn text-xs font-bold uppercase flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-sm">wifi</span>Test Connection</button>
+                            </div>
+
+                            <!-- <div class="text-center">
+                            <button onclick="simulateScan('STUDENT-001')"
+                                class="px-4 py-2 bg-black text-white text-xs uppercase">Simulate
+                                Scan</button>
+                            <button onclick="simulateScan('STUDENT-002')"
+                                class="px-4 py-2 bg-black text-white text-xs uppercase">Simulate
+                                Duplicate</button>
+                            <button onclick="simulateScan('STUDENT-FAIL')"
+                                class="px-4 py-2 bg-black text-white text-xs uppercase">Simulate
+                                Failed</button>
+                        </div> -->
+
+                            <!-- Sync Settings -->
+                            <div class="pt-4 tracking-widest">
+                                <h3 class="text-xs font-bold border-b border-neutral-200 dark:border-neutral-700 pb-2">
+                                    Record Settings</h3>
+                                <!--Student number column-->
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    <div class="w-full flex flex-col justify-center gap-2">
+                                        <span class="text-xs mt-2 uppercase tracking-widest flex items-center">
+                                            Students, Teachers, Staff &amp; School Logo</span>
+                                        <div class="flex text-xl gap-2 text-center justify-center items-center">
+                                            <span class="material-symbols-outlined">people</span>
+                                            <span id="studentNumber" class="text-green-600">0</span>
+                                        </div>
+                                        <button id="syncStudentsBtn"
+                                            class="btn py-2 text-xs font-bold uppercase flex items-center justify-center gap-2">
+                                            <span class="material-symbols-outlined text-sm">sync</span> Refresh</button>
+                                    </div>
+
+                                    <div class="w-full flex flex-col justify-center gap-2">
+                                        <label for="manual-lrn"
+                                            class="text-xs mt-2 uppercase tracking-widest flex items-center">Manual
+                                            Scan (RFID / LRN / Personnel ID)</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" id="manual-lrn"
+                                                class=" text-sm border rounded px-2 py-1 w-full"
+                                                placeholder="Enter RFID, LRN, or personnel ID">
+                                        </div>
+                                        <button id="manual-scan-btn"
+                                            class="bg-green-700 uppercase text-white px-4 py-1 hover:bg-green-600 flex items-center justify-center gap-2">
+                                            <span class="material-symbols-outlined text-sm">add</span>
+                                            Add</button>
+                                    </div>
+                                </div>
+
+
+
+                                <div class="space-y-2 mb-3">
+                                    <label class="text-xs mt-2 uppercase tracking-widest flex items-center">Attendance
+                                        Records</label>
+                                    <p class="text-xs flex items-center gap-1 italic"> <span
+                                            class="material-symbols-outlined text-xs">info</span> Automatically sync
+                                        Attendance Records to the server every 2 hours</p>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button onclick="manualSync()" class="w-full py-2 btn text-xs font-bold uppercase
+                                            flex items-center justify-center gap-2">
+                                            <span class="material-symbols-outlined text-sm">cloud_upload</span>
+                                            Sync Now
+                                        </button>
+
+                                        <button onclick="resyncToday()"
+                                            class="w-full py-2 bg-blue-700 text-white text-xs font-bold uppercase flex items-center justify-center gap-1">
+                                            <span
+                                                class="material-symbols-outlined text-sm">cloud_upload</span>Today</button>
+                                        <button onclick="resyncYesterday()"
+                                            class="w-full py-2 bg-blue-700 text-white text-xs font-bold uppercase flex items-center justify-center gap-1">
+                                            <span
+                                                class="material-symbols-outlined text-sm">cloud_upload</span>Yesterday</button>
+                                        <div class="flex gap-1 ">
+                                            <input id="lastNDays" type="number" min="1" placeholder="N DAYS"
+                                                class="w-full p-2 uppercase tracking-widest border dark:bg-neutral-900 text-xs" />
+                                            <button onclick="resyncLastNDays()"
+                                                class="bg-blue-700 text-white px-3 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-1">
+                                                <span
+                                                    class="material-symbols-outlined text-sm">cloud_upload</span>sync</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-xs uppercase text-center mt-2">
+                                    <span class="text-neutral-400">Last Full Sync:</span>
+                                    <span id="lastFullSyncTime">Never</span>
+                                </div>
+                            </div>
+
+                            <!-- UI Settings -->
+                            <div class="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                                <h3 class="text-xs font-bold uppercase tracking-widest mb-2">UI Settings</h3>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest">Records per
+                                        page</label>
+                                    <select id="recordsPerPageSelect" class="w-full p-2 border btn"
+                                        onchange="updateRecordsPerPage()">
+                                        <option value="10" selected>10</option>
+                                        <option value="15">15</option>
+                                        <option value="20">20</option>
+                                    </select>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold uppercase tracking-widest">Theme</label>
+                                    <select id="theme-select" class="w-full p-2 border btn" onchange="updateTheme()">
+                                        <option value="light">Light</option>
+                                        <option value="dark">Dark</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button
+                                class="w-full py-3 btn font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 mt-6"
+                                onclick="saveSettings()">
+                                <span class="material-symbols-outlined text-sm">save</span>
+                                Save Settings
+                            </button>
+
+                        </div>
+                    </div>
+
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Hidden QR Scanner Input -->
+    <input type="text" id="scanner-input" class="opacity-0" autofocus>
+
+</body>
+
+<script>
+
+    /* ================= TIME THEMES ================= */
+
+    function setGreeting(text) {
+        const greeting = document.getElementById('greeting');
+
+        //remove the body class
+        document.body.classList.remove(
+            'morning',
+            'afternoon',
+            'evening'
+        );
+
+        switch (text) {
+            case 'morning':
+                document.body.classList.add('morning');
+                greeting.innerHTML = 'Good Morning';
+                break;
+            case 'afternoon':
+                document.body.classList.add('afternoon');
+                greeting.innerHTML = 'Good Afternoon';
+                break;
+            case 'evening':
+                document.body.classList.add('evening');
+                greeting.innerHTML = 'Good Evening';
+                break;
+            default:
+                document.body.classList.add('evening');
+                greeting.innerHTML = 'Good Evening';
+        }
+    }
+    function applyTimeTheme() {
+        const hour = new Date().getHours();
+
+        const greeting = document.getElementById('greeting');
+
+        document.body.classList.remove(
+            'morning',
+            'afternoon',
+            'evening'
+        );
+
+        if (hour >= 5 && hour < 12) {
+
+            document.body.classList.add('morning');
+
+            greeting.innerHTML = 'Good Morning';
+
+        }
+        else
+            if (hour >= 12 && hour < 18) {
+
+                document.body.classList.add('afternoon');
+
+                greeting.innerHTML = 'Good Afternoon';
+
+            }
+            else {
+
+                document.body.classList.add('evening');
+
+                greeting.innerHTML = 'Good Evening';
+            }
+    }
+
+
+    setInterval(applyTimeTheme, 100000); applyTimeTheme();
+
+    const scannerInput = document.getElementById('scanner-input');
+
+    function enableScanner() {
+        scannerInput.focus();
+        console.log("Scanner enabled");
+    }
+
+    function disableScanner() {
+        scannerInput.blur();
+        console.log("Scanner disabled");
+    }
+
+    window.addEventListener('load', enableScanner);
+
+    scannerInput.addEventListener('keydown', function (e) {
+          console.log("Scanner Fired");
+        if (e.key === 'Enter') {
+            const scannedId = scannerInput.value.trim();
+              console.log("Scanned: "+ scannedId);
+            if (scannedId) {
+                handleScan(scannedId);
+                scannerInput.value = '';
+
+                // Ready for the next scan
+                enableScanner();
+            }
+
+            e.preventDefault();
+        }
+    });
+
+    /* ================= CLOCK ================= */
+    const timeEl = document.getElementById('time');
+    const dateEl = document.getElementById('date');
+    function updateClock() {
+        const now = new Date();
+        timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: '2-digit' }).toUpperCase();
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    /* ================= STATE ================= */
+    const sidePanel = document.getElementById('sidePanel');
+    const logsPanel = document.getElementById('logsPanel');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const logsBody = document.getElementById('logsBody');
+    const feedbackOverlay = document.getElementById('successOverlay');
+    const feedbackName = document.getElementById('feedbackName');
+    const searchInput = document.getElementById('searchInput');
+    const recordsPerPageSelect = document.getElementById('recordsPerPageSelect');
+    const themeSelect = document.getElementById('theme-select');
+
+    let scans = [];
+    let currentPage = 1;
+    let perPage = parseInt(recordsPerPageSelect.value);
+
+    function getSavedSettings() {
+        return JSON.parse(localStorage.getItem('kioskSettings') || '{}');
+    }
+
+    function formatLocalDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    /* ================= SYNC ENGINE ================= */
+
+    const syncBtn = document.getElementById('syncStudentsBtn');
+    document.getElementById('syncStudentsBtn').onclick = async () => {
+        syncBtn.innerHTML = `<span class="material-symbols-outlined text-sm animate-spin">sync</span> refreshing...`;
+        try {
+            const settings = getSavedSettings();
+            const count = await window.api.updatePeople(settings);
+            const schoolSynced = await loadSchoolDataFromSettings({
+                showLoading: false,
+                notify: false
+            });
+            document.getElementById('studentNumber').textContent = `${count}`;
+            showPopup(
+                schoolSynced
+                    ? `Synced school logo and ${count} students, teachers, and staff successfully`
+                    : `Synced ${count} students, teachers, and staff, but the school logo could not be refreshed`,
+                schoolSynced ? 'success' : 'info'
+            );
+        } catch (err) {
+            console.error(err);
+            showPopup('Failed to sync students, teachers, staff, and school logo', 'error');
+        }
+        finally {
+            syncBtn.innerHTML = `<span class="material-symbols-outlined text-sm">sync</span> refresh`;
+        }
+    };
+
+    updateLastFullSyncTime();
+
+    const FIXED_FULL_SYNC_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours
+    let isSyncing = false;
+
+    // Manual scan from settings panel
+    document.getElementById('manual-scan-btn').onclick = () => {
+        const input = document.getElementById('manual-lrn');
+        const identifier = input.value.trim();
+        if (!identifier) {
+            showPopup('Please enter a valid RFID, LRN, or personnel ID', 'error');
+            return;
+        }
+        // Trigger the same handleScan function as the scanner
+        handleScan(identifier);
+
+        // Clear input after adding
+        input.value = '';
+    };
+
+    // Manual scan from settings panel
+    document.getElementById('manual-lrn').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('manual-scan-btn').click();
+        }
+    });
+
+    // Manual sync button
+    function manualSync() {
+        processUnsynced();
+    }
+
+    // Full Sync every 2 hours (fixed)
+    setInterval(() => {
+        console.log("Running full 2-hour sync...");
+        processUnsynced();
+    }, FIXED_FULL_SYNC_INTERVAL);
+
+    // Generic function to process unsynced scans
+    async function processUnsynced() {
+
+        if (isSyncing) return;
+
+        isSyncing = true;
+        showSyncSpinner(true);
+
+        const unsynced = await window.api.getUnsynced();
+        updateUnsyncedBadge(unsynced.length);
+
+        if (!unsynced.length || !navigator.onLine) {
+            showPopup(navigator.onLine ? 'All records are synced' : 'Offline - records queued', navigator.onLine ? 'success' : 'info');
+            isSyncing = false;
+            showSyncSpinner(false);
+            return;
+        }
+
+
+        try {
+            const settings = getSavedSettings();
+            await window.api.syncUnsynced(settings);
+            showPopup(`Synced ${unsynced.length} record(s)`, 'success');
+            updateLastFullSyncTime();
+        } catch (err) {
+            console.error("Sync failed:", err);
+            showPopup('Sync failed', 'error');
+        } finally {
+            isSyncing = false;
+            showSyncSpinner(false);
+            const remaining = await window.api.getUnsynced();
+            updateUnsyncedBadge(remaining.length);
+        }
+    }
+
+    // Helpers
+    function showSyncSpinner(show) {
+        document.getElementById('syncSpinner')
+            .classList.toggle('hidden', !show);
+    }
+
+
+    function updateUnsyncedBadge(count) {
+        const badge = document.getElementById('unsyncedBadge');
+        badge.textContent = count;
+        badge.classList.toggle('hidden', count === 0);
+    }
+
+    function updateLastFullSyncTime() {
+        document.getElementById('lastFullSyncTime').textContent =
+            new Date().toLocaleString();
+    }
+
+    /* ================= RE-SYNC OPTIONS ================= */
+
+    async function resyncToday() {
+        if (!navigator.onLine) return showPopup("Offline - records queued", "info");
+        const count = await window.api.resyncData(1, getSavedSettings());
+        showPopup(`Re-synced ${count} record(s) for today`, 'success');
+    }
+
+    async function resyncYesterday() {
+        if (!navigator.onLine) return showPopup("Offline - records queued", "info");
+        const count = await window.api.resyncData(2, getSavedSettings());
+        showPopup(`Re-synced ${count} record(s) for yesterday`, 'success');
+    }
+
+    async function resyncLastNDays(days) {
+        if (!days) days = parseInt(document.getElementById('lastNDays').value, 10);
+        if (!navigator.onLine) return showPopup("Offline - records queued", "info");
+        if (!days || days <= 0) return showPopup('Invalid number of days', 'error');
+
+        isSyncing = true;
+        showSyncSpinner(true);
+
+        try {
+            const settings = getSavedSettings();
+            const count = await window.api.resyncData(days, settings);
+            showPopup(`Re-synced ${count} record(s) for last ${days} day(s)`, 'success');
+            updateLastFullSyncTime();
+        } catch (err) {
+            console.error(err);
+            showPopup("Resync failed", "error");
+        } finally {
+            isSyncing = false;
+            showSyncSpinner(false);
+        }
+    }
+
+    /* ================= PANELS ================= */
+    function openPanel(panel) {
+        sidePanel.classList.add('active');
+        logsPanel.classList.add('hidden');
+        settingsPanel.classList.add('hidden');
+        panel.classList.remove('hidden');
+
+        if (panel === settingsPanel) {
+            disableScanner();
+        } else {
+            enableScanner();
+        }
+    }
+    function closePanels() {
+        sidePanel.classList.remove('active');
+        logsPanel.classList.add('hidden');
+        settingsPanel.classList.add('hidden');
+        enableScanner();
+    }
+    document.getElementById('logsBtn').onclick = () => {
+        document.getElementById('logsBtn').classList.add('animate-ping');
+        if (logsPanel.classList.contains('hidden')) {
+            openPanel(logsPanel);
+        } else {
+            closePanels();
+        }
+        setTimeout(() => document.getElementById('logsBtn').classList.remove('animate-ping'), 500);
+        enableScanner();
+    };
+    document.getElementById('settingsBtn').onclick = () => {
+        document.getElementById('settingsBtn').classList.add('animate-spin');
+        if (settingsPanel.classList.contains('hidden')) {
+            openPanel(settingsPanel);
+        } else {
+            closePanels();
+        }
+
+        setTimeout(() => document.getElementById('settingsBtn').classList.remove('animate-spin'), 300);
+    };
+
+    /* ================= LOGS ================= */
+    function filteredScans() {
+        const q = (searchInput.value || "").toLowerCase();
+        return scans.filter(s =>
+            (s.display_label || s.lrn || "").toLowerCase().includes(q) ||
+            ((s.type || "Recorded") || "").toLowerCase().includes(q)
+        );
+    }
+    function escapeLogText(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[char]);
+    }
+    function getPersonLogLabel(person, fallback = '') {
+        if (!person) return fallback;
+
+        if (['teacher', 'staff'].includes(String(person.person_type).toLowerCase())) {
+            return person.name || fallback;
+        }
+
+        return person.lrn
+            || person.student_number
+            || person.student_no
+            || person.student_id
+            || fallback;
+    }
+    function renderLogs() {
+        const filtered = filteredScans();
+        const totalPages = Math.ceil(filtered.length / perPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * perPage;
+        const pageData = filtered.slice(start, start + perPage);
+
+        logsBody.innerHTML = pageData.map(s => {
+            let cls = 'status-recorded';
+            if (s.type === 'Already Recorded') cls = 'status-duplicate';
+            if (s.type === 'Failed') cls = 'status-failed';
+            return `<tr>
+            <td>${escapeLogText(s.display_label || s.lrn)}</td>
+            <td><span class="${cls}">${escapeLogText(s.type || 'Recorded')}</span></td>
+            <td>${escapeLogText(s.time)}</td>
+        </tr>`;
+        }).join('');
+
+        document.getElementById('pageIndicator').textContent = `Page ${currentPage} of ${totalPages}`;
+    }
+
+    function prevPage() { if (currentPage > 1) { currentPage--; renderLogs(); } }
+    function nextPage() { const totalPages = Math.ceil(filteredScans().length / perPage) || 1; if (currentPage < totalPages) { currentPage++; renderLogs(); } }
+
+    /* ================= SCAN ================= */
+    async function handleScan(id) {
+        //if the list is closed, open it
+        if (logsPanel.classList.contains('hidden')) {
+            openPanel(logsPanel);
+        }
+
+        // Use local date/time
+        const now = new Date();
+        const timestamp = now.toISOString(); // still use ISO for primary key
+
+        const scanData = {
+            identifier: id,
+            lrn: id,
+            type: null,
+            currentdate: formatLocalDate(now),                          // YYYY-MM-DD local
+            time: now.toTimeString().split(' ')[0],                     // HH:MM:SS local
+            timestamp
+        };
+
+        // Save locally in SQLite
+        let result;
+        try {
+            result = await window.api.saveScan(scanData);
+        } catch (err) {
+            console.error("Local scan save failed:", err);
+            scanData.type = 'Failed';
+            scanData.display_label = id;
+            scans.unshift(scanData);
+            renderLogs();
+            return;
+        }
+
+        // Record the result in the log. Only duplicate scans need a notice.
+        if (result.success) {
+            scanData.student_id = result.person.student_id;
+            scanData.teacher_id = result.person.teacher_id;
+            scanData.person_type = result.person.person_type;
+            scanData.identifier = result.person.identifier;
+            scanData.lrn = result.person.identifier;
+            scanData.display_label = getPersonLogLabel(result.person, id);
+            scans.unshift(scanData);
+            renderLogs();
+            const unsynced = await window.api.getUnsynced();
+            updateUnsyncedBadge(unsynced.length);
+            trySync(scanData);
+        } else if (result.duplicate) {
+            scanData.type = 'Already Recorded';
+            scanData.student_id = result.person?.student_id;
+            scanData.teacher_id = result.person?.teacher_id;
+            scanData.person_type = result.person?.person_type;
+            scanData.identifier = result.person?.identifier || id;
+            scanData.lrn = result.person?.identifier || id;
+            scanData.display_label = getPersonLogLabel(result.person, id);
+            scans.unshift(scanData);
+            renderLogs();
+            showPopup('Already Recorded', 'info');
+        } else {
+            scanData.type = 'Failed';
+            scanData.display_label = result.person?.display_label || id;
+            scanData.failure_message = result.message || 'Failed to scan';
+            scans.unshift(scanData);
+            renderLogs();
+            console.warn(scanData.failure_message);
+        }
+    }
+
+
+    async function trySync(scanData) {
+
+        if (!navigator.onLine) return;
+        const settings = getSavedSettings();
+        try {
+            await window.api.syncUnsynced(settings);
+            const remaining = await window.api.getUnsynced();
+            updateUnsyncedBadge(remaining.length);
+        } catch (err) {
+            console.error("Immediate sync failed; scan remains queued:", err);
+        }
+    }
+
+    function simulateScan(id) { handleScan(id); }
+
+    /* ================= UI SETTINGS ================= */
+    function updateRecordsPerPage() {
+        perPage = parseInt(recordsPerPageSelect.value);
+        currentPage = 1;
+        renderLogs();
+    }
+    function updateTheme() {
+        const isDark = themeSelect.value === 'dark';
+        document.documentElement.classList.toggle('dark', isDark);
+        document.body.classList.toggle('dark', isDark);
+        document.getElementById('sidePanel').classList.toggle('dark', isDark);
+        Array.from(document.getElementsByClassName('btn')).forEach(btn => btn.classList.toggle('dark', isDark));
+
+    }
+
+
+    /*** Save All Settings ***/
+    function saveSettings() {
+        var url = document.getElementById('server-url');
+        var authCode = document.getElementById('auth-code');
+
+        if (!url.value || !authCode.value) {
+            //add border red 500 to the invalid field
+            if (!url.value)
+                url.classList.add('border-red-500');
+            if (!authCode.value)
+                authCode.classList.add('border-red-500');
+            showPopup('Setup incomplete', 'error');
+            return;
+        }
+        //remove the border red 500 from the invalid field
+        url.classList.remove('border-red-500');
+        authCode.classList.remove('border-red-500');
+        const settings = {
+            ui: {
+                recordsPerPage: parseInt(document.getElementById('recordsPerPageSelect').value),
+                theme: document.getElementById('theme-select').value
+            },
+            server: {
+                url: url.value,
+                authCode: authCode.value
+            }
+        };
+
+        localStorage.setItem('kioskSettings', JSON.stringify(settings));
+        console.log('Settings saved:', settings);
+        configureAutomaticUpdatesFromSettings(settings);
+        //close the settings panel
+        showPopup('Settings Saved', 'success');
+        loadSettings();
+        loadSchoolDataFromSettings();
+        closePanels();
+
+    }
+
+    /*** Load Settings ***/
+    function loadSettings() {
+        const settings = JSON.parse(localStorage.getItem('kioskSettings') || '{}');
+
+        // UI
+        if (settings.ui) {
+            if (settings.ui.recordsPerPage) {
+                perPage = settings.ui.recordsPerPage;
+                document.getElementById('recordsPerPageSelect').value = settings.ui.recordsPerPage;
+            }
+            if (settings.ui.theme) {
+                document.getElementById('theme-select').value = settings.ui.theme;
+                const isDark = settings.ui.theme === 'dark';
+                document.documentElement.classList.toggle('dark', isDark);
+                document.body.classList.toggle('dark', isDark);
+                document.getElementById('sidePanel').classList.toggle('dark', isDark);
+                Array.from(document.getElementsByClassName('btn')).forEach(btn => btn.classList.toggle('dark', isDark));
+
+            }
+        }
+        // Server
+        if (settings.server) {
+            if (settings.server.url) {
+                document.getElementById('server-url').value = settings.server.url;
+            }
+            if (settings.server.authCode) {
+                document.getElementById('auth-code').value = settings.server.authCode;
+            }
+        }
+    }
+
+    // Call on page load
+    loadSettings();
+
+
+    let isConnectionValid = false;
+
+    function testConnection() {
+        const url = document.getElementById('server-url').value;
+        const authCode = document.getElementById('auth-code').value;
+        const testBtn = document.getElementById('testConnectionBtn');
+        const endpoint = `${url}/api/application/school?token=${authCode}`;
+
+        testBtn.disabled = true;
+        testBtn.classList.add('disabled');
+        testBtn.textContent = 'Testing...';
+
+        fetch(endpoint)
+            .then(response => {
+                if (response.ok) {
+                    //check if the result is not "Access Denied"
+                    response.text().then(text => {
+                        if (text.includes("Access Denied")) {
+                            showPopup('Connection failed: Access Denied', 'error');
+                            isConnectionValid = false;
+                            document.querySelector('button[onclick="saveSettings()"]').disabled = true;
+                            document.querySelector('button[onclick="saveSettings()"]').classList.add('disabled');
+                        } else {
+                            showPopup('Connection successful', 'success');
+                            isConnectionValid = true;
+                            document.querySelector('button[onclick="saveSettings()"]').disabled = false;
+                            document.querySelector('button[onclick="saveSettings()"]').classList.remove('disabled');
+                        }
+                    });
+
+                } else {
+                    showPopup('Connection failed', 'error');
+                    isConnectionValid = false;
+                    document.querySelector('button[onclick="saveSettings()"]').disabled = true;
+                    document.querySelector('button[onclick="saveSettings()"]').classList.add('disabled');
+                }
+            })
+            .catch(error => {
+                showPopup('Connection failed', 'error');
+                isConnectionValid = false;
+                document.querySelector('button[onclick="saveSettings()"]').disabled = true;
+                document.querySelector('button[onclick="saveSettings()"]').classList.add('disabled');
+            })
+            .finally(() => {
+                testBtn.disabled = false;
+                testBtn.classList.remove('disabled');
+                testBtn.innerHTML = '<span class="material-symbols-outlined text-sm">wifi</span> Test Connection';
+            });
+    }
+
+    document.getElementById('testConnectionBtn').onclick = testConnection;
+
+    async function loadSchoolDataFromSettings({ showLoading = true, notify = true } = {}) {
+        const overlay = document.getElementById('loading-overlay');
+        const popup = document.getElementById('message-popup');
+        const popupText = document.getElementById('message-popup-text');
+        const scanStatus = document.getElementById('scanStatus');
+
+        if (showLoading) overlay.classList.remove('hidden');
+
+        const settings = JSON.parse(localStorage.getItem('kioskSettings') || '{}');
+        const serverUrl = settings.server?.url || '';
+        const authCode = settings.server?.authCode || '';
+
+        if (!serverUrl || !authCode) {
+            if (showLoading) overlay.classList.add('hidden');
+            scanStatus.textContent = 'Setup required';
+            scanStatus.classList.add('text-neutral-500');
+            return false;
+        }
+
+        try {
+            const endpoint = `${serverUrl}/api/application/school?token=${authCode}`;
+            const response = await fetch(endpoint);
+            if (!response.ok) throw new Error('Failed to fetch school data');
+
+            const data = await response.json();
+
+            // Update school name
+            const schoolNameEl = document.getElementById('school-name');
+            if (schoolNameEl) schoolNameEl.textContent = data.school_name || '';
+
+            // Preload logo function
+            const preloadLogo = async () => {
+                // Try to fetch from server first
+                const schoolLogo = data.school_logo || data.logo;
+                if (schoolLogo) {
+                    const cacheResult = await window.api.cacheSchoolLogo(serverUrl, schoolLogo);
+                    if (cacheResult.success && cacheResult.url) return cacheResult.url;
+                    console.warn('Server logo fetch failed, using cached logo if available:', cacheResult.message);
+                } else {
+                    await window.api.clearCachedSchoolLogo();
+                }
+
+                // If offline or fetch failed, use cached logo
+                const cachedLogo = await window.api.getCachedSchoolLogo();
+                if (cachedLogo) return cachedLogo;
+
+                // If no logo available, return null
+                return null;
+            };
+
+            const logoSrc = await preloadLogo();
+            const logoEl = document.getElementById('school-logo');
+            const placeholderEl = document.getElementById('school-logo-placeholder');
+
+            if (logoSrc && logoEl) {
+                logoEl.src = logoSrc;
+                logoEl.classList.remove('hidden');
+                if (placeholderEl) placeholderEl.classList.add('hidden');
+            } else if (placeholderEl) {
+                if (logoEl) logoEl.classList.add('hidden');
+                placeholderEl.classList.remove('hidden');
+            }
+
+            // Save updated auth code
+            settings.server = {
+                url: serverUrl,
+                authCode: data.auth_code || authCode
+            };
+            localStorage.setItem('kioskSettings', JSON.stringify(settings));
+
+            if (notify) showPopup('School data loaded successfully', 'success');
+            scanStatus.textContent = 'Connected to server';
+            scanStatus.classList.remove('text-neutral-500', 'text-red-500');
+            scanStatus.classList.add('text-green-500');
+            return true;
+
+        } catch (err) {
+            console.error('Error loading school data:', err);
+            if (notify) showPopup('Failed to load school data', 'error');
+            scanStatus.textContent = 'Disconnected from server';
+            scanStatus.classList.remove('text-neutral-500', 'text-green-500');
+            scanStatus.classList.add('text-red-500');
+
+            const cachedLogo = await window.api.getCachedSchoolLogo();
+            const logoEl = document.getElementById('school-logo');
+            const placeholderEl = document.getElementById('school-logo-placeholder');
+            if (cachedLogo && logoEl) {
+                logoEl.src = cachedLogo;
+                logoEl.classList.remove('hidden');
+                if (placeholderEl) placeholderEl.classList.add('hidden');
+            } else if (placeholderEl) {
+                if (logoEl) logoEl.classList.add('hidden');
+                placeholderEl.classList.remove('hidden');
+            }
+            return false;
+        } finally {
+            if (showLoading) overlay.classList.add('hidden');
+        }
+    }
+
+    let popupHideTimer;
+
+    /*** Helper function to show popup ***/
+    function showPopup(message, type = 'info') {
+        const popup = document.getElementById('message-popup');
+        const popupText = document.getElementById('message-popup-text');
+        const popupIcon = document.getElementById('message-popup-icon');
+        const popupLabel = document.getElementById('message-popup-label');
+        const popupTypes = {
+            success: { className: 'popup-success', icon: 'check_circle', label: 'Success' },
+            error: { className: 'popup-error', icon: 'error', label: 'Attention' },
+            info: { className: 'popup-info', icon: 'info', label: 'Notice' }
+        };
+        const popupType = popupTypes[type] || popupTypes.info;
+
+        popupText.textContent = message;
+        popupIcon.textContent = popupType.icon;
+        popupLabel.textContent = popupType.label;
+        popup.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+        popup.classList.remove('popup-success', 'popup-error', 'popup-info');
+        popup.classList.add(popupType.className);
+
+        // Show popup
+        popup.classList.add('message-show');
+
+        // Keep each alert visible long enough to read. Reset the timer for newer alerts.
+        clearTimeout(popupHideTimer);
+        popupHideTimer = setTimeout(() => popup.classList.remove('message-show'), 4000);
+    }
+
+    function configureAutomaticUpdatesFromSettings(settings = getSavedSettings()) {
+        if (!settings.server?.url) return;
+
+        window.api.configureAutomaticUpdates(settings).catch(error => {
+            console.error('Could not configure automatic updates:', error);
+        });
+    }
+
+    // Configure the update feed from the same server used for attendance sync.
+    configureAutomaticUpdatesFromSettings();
+
+    // Call on page load
+    loadSchoolDataFromSettings();
+
+    async function autoSyncPeopleOnStartup() {
+
+        const settings = JSON.parse(localStorage.getItem('kioskSettings') || '{}');
+        if (!settings.server?.url || !settings.server?.authCode) {
+            console.warn("Server settings missing — skipping initial people sync.");
+            return;
+        }
+
+        try {
+            const count = await window.api.updatePeople(settings);
+            console.log(`Auto-synced ${count} students, teachers, and staff on startup.`);
+            processUnsynced();
+            document.getElementById('studentNumber').textContent = `(${count})`;
+        } catch (err) {
+            console.error("Auto-sync failed:", err);
+            showPopup("Failed to sync students, teachers, and staff", "error");
+        }
+    }
+
+    // Call on page load
+    autoSyncPeopleOnStartup();
+
+    window.addEventListener('online', () => {
+        showPopup('Back online - syncing queued records', 'info');
+        processUnsynced();
+    });
+
+    window.addEventListener('offline', () => {
+        showPopup('Offline - scans will be saved locally', 'info');
+    });
+
+    window.api.getUnsynced()
+        .then(records => updateUnsyncedBadge(records.length))
+        .catch(err => console.error("Failed to load queued scan count:", err));
+
+    // Apply dark class to thead when needed
+    function updateTableTheme() {
+        const thead = document.querySelector('thead');
+        if (thead) {
+            thead.classList.toggle('dark', document.documentElement.classList.contains('dark'));
+        }
+    }
+
+    // Watch for theme changes
+    const themeObserver = new MutationObserver(() => {
+        updateTableTheme();
+    });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+
+</script>
+
+</html>

@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+:root {
+    --hanan-primary: #8F160F;
+    --hanan-secondary: #B32317;
+    --hanan-bg-light: #FFF7F1;
+    --hanan-text-dark: #2F1A17;
+    --hanan-accent-blue: #D7A83D;
+    --hanan-alert-red: #D92D20;
+}
+
+body {
+    color: var(--hanan-text-dark);
+}
+
+/* Portal/admin shared utility overrides for HANAN branding */
+.bg-indigo-600,
+.bg-sky-600,
+.bg-emerald-600 {
+    background-color: var(--hanan-primary) !important;
+    color: #fff !important;
+}
+
+.hover\:bg-indigo-500:hover,
+.hover\:bg-sky-500:hover,
+.hover\:bg-emerald-500:hover {
+    background-color: var(--hanan-secondary) !important;
+    color: #fff !important;
+}
+
+.text-indigo-600,
+.text-sky-600,
+.text-emerald-600 {
+    color: var(--hanan-primary) !important;
+}
+
+
+.text-hanan-primary {
+    color: var(--hanan-primary) !important;
+}
+
+.text-hanan-secondary {
+    color: var(--hanan-accent-blue) !important;
+}
+
+.bg-hanan-primary {
+    background-color: var(--hanan-primary) !important;
+    color: #fff !important;
+}
+
+.bg-hanan-secondary {
+    background-color: var(--hanan-accent-blue) !important;
+    color: #fff !important;
+}

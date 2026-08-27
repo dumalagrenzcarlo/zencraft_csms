@@ -1,0 +1,19 @@
+{
+  "name": "ZenCraft Systems",
+  "short_name": "ZenCraft",
+  "icons": [
+    {
+      "src": "/branding/hanan/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/branding/hanan/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#F7BC3B",
+  "background_color": "#F8F1E5",
+  "display": "standalone"
+}

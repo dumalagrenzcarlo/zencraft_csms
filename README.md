@@ -1,0 +1,31 @@
+# ZenCraft CSMS SaaS
+
+ZenCraft CSMS SaaS is the multi-school evolution of SMS Moonlight. It retains the established school-management workflows while adding a central control plane, isolated school databases, domain-based tenant routing, plans, subscriptions, and workspace lifecycle controls.
+
+## Projects
+
+| Project | Description |
+| --- | --- |
+| [`sms_moonlight`](./sms_moonlight/) | Laravel 12 SaaS control plane and tenant school application. |
+| [`sms_pwa`](./sms_pwa/) | Electron attendance scanner, retained for tenant-aware API integration. |
+
+## Milestone 1
+
+The first milestone provides:
+
+- Platform owner and support authentication
+- Platform dashboard and school directory
+- School provisioning with a dedicated database
+- Root, administrator, teacher, and student domains per school
+- Plans, subscriptions, trial state, and user-metering fields
+- Initial school administrator creation
+- Tenant-specific file storage and queue context
+- Active/suspended tenant enforcement
+- Central audit records for platform login and provisioning
+- Automated access, provisioning, and isolation tests
+
+See [`docs/MILESTONE_1.md`](./docs/MILESTONE_1.md) for architecture and setup details.
+
+## Security
+
+Environment files, SQLite databases, tenant databases, logs, dependencies, backups, and build output are excluded from version control. Never commit production credentials or student data.

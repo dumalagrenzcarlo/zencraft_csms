@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Remove /public from old externally requested URLs.
+    # THE_REQUEST prevents this redirect from firing after the internal rewrite.
+    RewriteCond %{THE_REQUEST} \s/+public(?:[/?\s]) [NC]
+    RewriteRule ^public(?:/(.*))?$ /$1 [R=302,L,NE]
+
+    # Let requests already rewritten into public/ continue to its .htaccess.
+    RewriteRule ^public(?:/|$) - [L]
+
+    # Serve Laravel's public directory without exposing it in the browser URL.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

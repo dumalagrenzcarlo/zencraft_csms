@@ -6,12 +6,12 @@ const body = DM_Sans({ variable: '--body', subsets: ['latin'] });
 const display = Manrope({ variable: '--display', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://smsmoonlight.com'),
-  title: 'SMS Moonlight | School Management, Beautifully Simplified',
-  description: 'SMS Moonlight by ZenCraft Web Services—modern school management with guided setup and fair, transparent pricing.',
+  metadataBase: new URL('https://zencraft.ph'),
+  title: 'ZenCraft CSMS | Campus & Student Management System',
+  description: 'ZenCraft CSMS brings student records, faculty, attendance, classes, and campus operations into one secure, easy-to-use platform.',
   icons: { icon: '/zencraft-logo.png' },
-  openGraph: { title: 'SMS Moonlight by ZenCraft | More time for what matters', description: 'Modern school management with simple setup and transparent pricing.', type: 'website', images: [{ url: '/og.png', width: 1672, height: 909, alt: 'SMS Moonlight by ZenCraft — More time for what matters.' }] },
-  twitter: { card: 'summary_large_image', title: 'SMS Moonlight by ZenCraft | More time for what matters', description: 'Modern school management with simple setup and transparent pricing.', images: ['/og.png'] },
+  openGraph: { title: 'ZenCraft CSMS | One campus. Clearly managed.', description: 'A modern campus and student management system with guided setup and transparent pricing.', type: 'website' },
+  twitter: { card: 'summary', title: 'ZenCraft CSMS | One campus. Clearly managed.', description: 'A modern campus and student management system with guided setup and transparent pricing.' },
 };
 
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode}>) {

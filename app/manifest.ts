@@ -4,9 +4,9 @@ export const dynamic = 'force-static';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'ZenCraft Campus School Management System',
-    short_name: 'ZenCraft CSMS',
-    description: 'A clear, connected campus management system for growing schools.',
+    name: 'ZenCraft Attendance Scanner',
+    short_name: 'Attendance',
+    description: 'Scan student QR codes and record attendance from your phone.',
     start_url: '/',
     display: 'standalone',
     background_color: '#fbfcf8',

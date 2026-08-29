@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsurePlatformOwner;
 use App\Http\Middleware\EnsurePlatformUser;
 use App\Http\Middleware\EnsurePortalPasswordChanged;
 use App\Http\Middleware\EnsureTenantActive;
+use App\Http\Middleware\InitializeTenantFromSlugPath;
 use App\Http\Middleware\MoonshineAuthenticate;
 use App\Http\Middleware\StudentAuth;
 use App\Http\Middleware\TeacherAuth;
@@ -27,6 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // This runs before Laravel matches a route, allowing /{school-slug}/...
+        // to use the existing tenant route set on shared hosting.
+        $middleware->prepend(InitializeTenantFromSlugPath::class);
+
         $middleware->redirectGuestsTo(function (Request $request): string {
             $host = $request->getHost();
 
@@ -121,3 +126,4 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect('/');
         });
     })->create();
+

@@ -13,7 +13,6 @@
 /.zed
 /auth.json
 **/node_modules
-/sms_moonlight/public/build
 /sms_moonlight/public/hot
 /sms_moonlight/public/storage
 /sms_moonlight/storage/*.key
@@ -29,3 +28,4 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+

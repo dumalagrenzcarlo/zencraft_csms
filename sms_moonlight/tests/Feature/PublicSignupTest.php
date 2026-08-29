@@ -34,6 +34,7 @@ class PublicSignupTest extends TestCase
     public function test_a_user_can_create_and_verify_a_free_workspace(): void
     {
         Notification::fake();
+        config()->set('saas.public_signup.require_email_verification', true);
         $this->freePlan();
 
         $response = $this->withSession(['signup_captcha_answer' => 11])
@@ -79,6 +80,26 @@ class PublicSignupTest extends TestCase
         $school = $school->fresh();
         $this->assertFalse((bool) $school->getAttribute('signup_requires_email_verification'));
         $this->assertNotNull($school->getAttribute('signup_email_verified_at'));
+    }
+
+    public function test_a_free_workspace_is_ready_immediately_when_email_verification_is_disabled(): void
+    {
+        Notification::fake();
+        $this->freePlan();
+
+        $this->withSession(['signup_captcha_answer' => 11])
+            ->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->post('/signup', $this->signupPayload())
+            ->assertOk()
+            ->assertSee('Your workspace is ready')
+            ->assertSee('Open administrator login');
+
+        $school = Tenant::query()->where('slug', 'community-school')->firstOrFail();
+        $this->tenantsToDelete[] = $school->id;
+
+        $this->assertFalse((bool) $school->getAttribute('signup_requires_email_verification'));
+        $this->assertNotNull($school->getAttribute('signup_email_verified_at'));
+        Notification::assertNothingSent();
     }
 
     public function test_signup_rejects_an_incorrect_security_answer(): void

@@ -16,6 +16,7 @@ return [
     ],
     'public_signup' => [
         'enabled' => env('SAAS_PUBLIC_SIGNUP_ENABLED', true),
+        'require_email_verification' => env('SAAS_SIGNUP_REQUIRE_EMAIL_VERIFICATION', false),
         'verification_expiration_hours' => max(1, (int) env('SAAS_SIGNUP_VERIFICATION_HOURS', 24)),
     ],
 ];

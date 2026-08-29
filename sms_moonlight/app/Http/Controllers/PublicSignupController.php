@@ -83,24 +83,29 @@ class PublicSignupController extends Controller
             'admin_must_change_password' => false,
         ]);
 
-        $school->setAttribute('signup_requires_email_verification', true);
+        $requiresVerification = (bool) config('saas.public_signup.require_email_verification', false);
+
+        $school->setAttribute('signup_requires_email_verification', $requiresVerification);
         $school->setAttribute('signup_admin_email', strtolower($validated['admin_email']));
-        $school->setAttribute('signup_email_verified_at', null);
+        $school->setAttribute('signup_email_verified_at', $requiresVerification ? null : now()->toISOString());
         $school->save();
 
-        Notification::route('mail', strtolower($validated['admin_email']))
-            ->notify(new VerifySchoolAdminEmail(
-                $school->id,
-                $school->name,
-                $school->slug,
-                strtolower($validated['admin_email'])
-            ));
+        if ($requiresVerification) {
+            Notification::route('mail', strtolower($validated['admin_email']))
+                ->notify(new VerifySchoolAdminEmail(
+                    $school->id,
+                    $school->name,
+                    $school->slug,
+                    strtolower($validated['admin_email'])
+                ));
+        }
 
         $request->session()->forget('signup_captcha_answer');
 
         return view('signup.created', [
             'school' => $school,
             'email' => strtolower($validated['admin_email']),
+            'requiresVerification' => $requiresVerification,
         ]);
     }
 

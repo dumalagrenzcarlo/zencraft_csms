@@ -24,8 +24,9 @@ Route::middleware('central.domain')->group(function (): void {
 
     Route::prefix('platform')->middleware(['auth', 'platform.user'])->group(function (): void {
         Route::get('/', DashboardController::class)->name('platform.dashboard');
-        Route::resource('schools', SchoolController::class)->only(['index', 'show'])->names('platform.schools');
-        Route::post('/schools/{school}/onboarding/check', [OnboardingController::class, 'update'])->name('platform.schools.onboarding');
+
+        // Register static school routes before the dynamic {school} route so
+        // Laravel does not resolve "create" as a school route parameter.
         Route::middleware('platform.owner')->group(function (): void {
             Route::resource('schools', SchoolController::class)->only(['create', 'store'])->names('platform.schools');
             Route::patch('/schools/{school}/billing', [BillingController::class, 'update'])->name('platform.schools.billing');
@@ -34,6 +35,9 @@ Route::middleware('central.domain')->group(function (): void {
             Route::delete('/schools/{school}/support-access/{grant}', [SupportAccessController::class, 'destroy'])->name('platform.schools.support-access.destroy');
             Route::get('/audit-log', AuditLogController::class)->name('platform.audit');
         });
+
+        Route::resource('schools', SchoolController::class)->only(['index', 'show'])->names('platform.schools');
+        Route::post('/schools/{school}/onboarding/check', [OnboardingController::class, 'update'])->name('platform.schools.onboarding');
         Route::post('/logout', [AuthController::class, 'destroy'])->name('platform.logout');
     });
 });

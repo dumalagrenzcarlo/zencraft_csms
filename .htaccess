@@ -1,8 +1,11 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Send the bare domain directly through Laravel's front controller.
+    RewriteRule ^$ sms_moonlight/public/index.php [L]
+
     # Keep the Laravel source directory out of public URLs while serving its
     # public directory as this domain's document root.
     RewriteCond %{REQUEST_URI} !^/sms_moonlight/public/
-    RewriteRule ^(.*)$ sms_moonlight/public/$1 [L]
+    RewriteRule ^(.+)$ sms_moonlight/public/$1 [L]
 </IfModule>

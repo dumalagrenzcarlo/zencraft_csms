@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Create your free workspace · ZenCraft CSMS</title>
     <link rel="stylesheet" href="{{ global_asset('platform.css') }}">
-    <link rel="stylesheet" href="{{ global_asset('signup.css') }}">
+    <link rel="stylesheet" href="{{ global_asset('signup.css') }}?v=20260829">
 </head>
 <body class="signup-page">
     <main class="signup-shell">

@@ -125,17 +125,24 @@ class SchoolProvisioningTest extends TestCase
         $this->tenantsToDelete[] = $school->id;
 
         $this->withServerVariables(['HTTP_HOST' => 'localhost'])
-            ->get('/?_tenant_slug=sample-academy')
+            ->get('/sample-academy')
             ->assertOk()
             ->assertSee('Sample Academy');
 
         tenancy()->end();
 
         $this->withServerVariables(['HTTP_HOST' => 'localhost'])
-            ->get('/student/login?_tenant_slug=sample-academy')
+            ->get('/sample-academy/student/login')
             ->assertOk()
             ->assertSee('/sample-academy/student/login', false)
-            ->assertSee('/sample-academy/build/assets/', false);
+            ->assertSee('/build/assets/', false);
+
+        $this->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->post('/sample-academy/student/login', [
+                'lrn' => 'missing-student',
+                'password' => 'invalid-password',
+            ])
+            ->assertSessionHasErrors('lrn');
     }
 
     public function test_school_slug_cannot_conflict_with_a_central_or_asset_path(): void
@@ -468,3 +475,4 @@ class SchoolProvisioningTest extends TestCase
         ];
     }
 }
+

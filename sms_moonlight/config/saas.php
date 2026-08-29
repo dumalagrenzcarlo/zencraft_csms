@@ -12,6 +12,10 @@ return [
     'free_tenant_database_connection' => env('SAAS_FREE_TENANT_DB_CONNECTION', 'tenant_sqlite'),
     'reserved_tenant_slugs' => [
         'admin', 'api', 'build', 'favicons', 'health', 'images', 'platform',
-        'storage', 'student', 'teacher', 'up', 'uploaded-files', 'uploads',
+        'signup', 'storage', 'student', 'teacher', 'up', 'uploaded-files', 'uploads',
+    ],
+    'public_signup' => [
+        'enabled' => env('SAAS_PUBLIC_SIGNUP_ENABLED', true),
+        'verification_expiration_hours' => max(1, (int) env('SAAS_SIGNUP_VERIFICATION_HOURS', 24)),
     ],
 ];

@@ -15,6 +15,10 @@ class TenantRouteContext
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (tenancy()->initialized) {
+            return $next($request);
+        }
+
         $isCentralDomain = in_array(
             strtolower($request->getHost()),
             array_map('strtolower', config('tenancy.central_domains', [])),
@@ -62,3 +66,4 @@ class TenantRouteContext
         return app(InitializeTenancyByDomain::class)->handle($request, $next);
     }
 }
+

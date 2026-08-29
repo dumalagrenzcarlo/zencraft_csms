@@ -22,6 +22,7 @@ class Plan extends Model
         return [
             'features' => 'array',
             'active' => 'boolean',
+            'monthly_price_cents' => 'integer',
         ];
     }
 

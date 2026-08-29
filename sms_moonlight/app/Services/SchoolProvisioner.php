@@ -27,7 +27,7 @@ class SchoolProvisioner
 
         try {
             $tenant = DB::connection(config('tenancy.database.central_connection'))->transaction(function () use ($attributes, $plan, $trialEndsAt): Tenant {
-                $tenant = Tenant::create([
+                $tenant = new Tenant([
                     'id' => (string) Str::uuid(),
                     'name' => $attributes['name'],
                     'slug' => $attributes['slug'],
@@ -36,6 +36,18 @@ class SchoolProvisioner
                     'current_plan_id' => $plan->id,
                     'trial_ends_at' => $trialEndsAt,
                 ]);
+
+                if ($plan->monthly_price_cents === 0) {
+                    $tenant->setInternal(
+                        'db_connection',
+                        config('saas.free_tenant_database_connection', 'tenant_sqlite')
+                    );
+                    $tenant->setInternal('db_name', "tenant_{$tenant->id}.sqlite");
+                }
+
+                // Saving dispatches TenantCreated, which creates and migrates the
+                // database. Database metadata must therefore be set beforehand.
+                $tenant->save();
 
                 foreach ($this->domainsFor($attributes['slug']) as $domain) {
                     $tenant->domains()->create(['domain' => $domain]);

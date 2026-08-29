@@ -80,6 +80,35 @@ class SchoolProvisioningTest extends TestCase
             ->assertSee('Verified backups');
     }
 
+    public function test_free_plan_uses_an_isolated_sqlite_database(): void
+    {
+        $plan = Plan::query()->create([
+            'name' => 'Free',
+            'slug' => 'free',
+            'included_users' => 111,
+            'max_users' => 111,
+            'monthly_price_cents' => 0,
+            'active' => true,
+        ]);
+
+        $school = app(SchoolProvisioner::class)->create($this->schoolPayload($plan));
+        $this->tenantsToDelete[] = $school->id;
+
+        $databaseName = "tenant_{$school->id}.sqlite";
+
+        $this->assertSame('tenant_sqlite', $school->getInternal('db_connection'));
+        $this->assertSame($databaseName, $school->getInternal('db_name'));
+        $this->assertFileExists(database_path($databaseName));
+
+        $school->run(function (): void {
+            $this->assertSame('sqlite', DB::connection()->getDriverName());
+            $this->assertDatabaseHas('moonshine_users', [
+                'username' => 'admin',
+                'email' => 'admin@sample.test',
+            ]);
+        });
+    }
+
     public function test_school_databases_do_not_share_records(): void
     {
         $plan = $this->plan();

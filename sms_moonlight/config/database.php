@@ -43,6 +43,22 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        /*
+         * Template used for file-backed databases assigned to free tenants.
+         * Stancl Tenancy replaces the database value with the tenant-specific
+         * file under database/ when it initializes the tenant connection.
+         */
+        'tenant_sqlite' => [
+            'driver' => 'sqlite',
+            'database' => database_path('tenant.sqlite'),
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+            'busy_timeout' => 5000,
+            'journal_mode' => 'WAL',
+            'synchronous' => 'NORMAL',
+            'transaction_mode' => 'IMMEDIATE',
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),

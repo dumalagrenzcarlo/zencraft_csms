@@ -127,7 +127,7 @@ Route::middleware([
         }
 
         if ($portal === 'admin') {
-            return redirect('/admin');
+            return redirect()->route('moonshine.index');
         }
 
         return view('welcome');

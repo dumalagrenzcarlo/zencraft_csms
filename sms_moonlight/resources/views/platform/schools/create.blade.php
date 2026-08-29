@@ -3,7 +3,7 @@
 @section('title', 'Provision school')
 
 @section('content')
-<div class="page-head"><div><span class="eyebrow">New tenant</span><h1>Provision a school</h1><p>A dedicated database and four portal domains will be created automatically.</p></div></div>
+<div class="page-head"><div><span class="eyebrow">New tenant</span><h1>Provision a school</h1><p>A dedicated database and a shareable workspace path will be created automatically. Portal domains remain available when DNS is configured.</p></div></div>
 <form class="card form-card" method="post" action="{{ route('platform.schools.store') }}">
     @csrf
     <div class="form-grid">

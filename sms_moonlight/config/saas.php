@@ -10,4 +10,8 @@ return [
     'support_access_minutes' => max(5, (int) env('SAAS_SUPPORT_ACCESS_MINUTES', 60)),
     'backup_disk' => env('SAAS_BACKUP_DISK', 'local'),
     'free_tenant_database_connection' => env('SAAS_FREE_TENANT_DB_CONNECTION', 'tenant_sqlite'),
+    'reserved_tenant_slugs' => [
+        'admin', 'api', 'build', 'favicons', 'health', 'images', 'platform',
+        'storage', 'student', 'teacher', 'up', 'uploaded-files', 'uploads',
+    ],
 ];

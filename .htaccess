@@ -5,18 +5,9 @@
     # for the bare domain so Laravel never receives the repository subpath.
     RewriteRule ^$ /platform [R=302,L]
 
-    # Keep platform and health endpoints on the central application.
+    # Forward the original path to Laravel. Laravel resolves an optional first
+    # segment as a tenant slug before the router matches the remaining path.
     RewriteCond %{REQUEST_URI} !^/sms_moonlight/public/
-    RewriteRule ^(platform(?:/.*)?|health/ready|up)$ sms_moonlight/public/$1 [L,NC]
-
-    # Serve public assets without treating their first directory as a tenant.
-    RewriteCond %{DOCUMENT_ROOT}/sms_moonlight/public/$1 -f [OR]
-    RewriteCond %{DOCUMENT_ROOT}/sms_moonlight/public/$1 -d
     RewriteRule ^(.+)$ sms_moonlight/public/$1 [L]
-
-    # Shared-hosting fallback: /school-slug/path becomes /path internally.
-    # The marker lets Laravel initialize the tenant and generate links that
-    # retain the school slug. It is not exposed in the browser's address bar.
-    RewriteCond %{REQUEST_URI} !^/sms_moonlight/public/
-    RewriteRule ^([A-Za-z0-9_-]+)(?:/(.*))?$ sms_moonlight/public/$2?_tenant_slug=$1 [QSA,L]
 </IfModule>
+

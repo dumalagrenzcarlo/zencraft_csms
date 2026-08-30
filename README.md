@@ -8,6 +8,7 @@ ZenCraft CSMS SaaS is the multi-school evolution of SMS Moonlight. It retains th
 | --- | --- |
 | [`sms_moonlight`](./sms_moonlight/) | Laravel 12 SaaS control plane and tenant school application. |
 | [`sms_pwa`](./sms_pwa/) | Electron attendance scanner, retained for tenant-aware API integration. |
+| [`attendance_pwa`](./attendance_pwa/) | Installable phone-camera QR attendance scanner for teachers, connected to tenant APIs. |
 
 ## Milestone 1
 

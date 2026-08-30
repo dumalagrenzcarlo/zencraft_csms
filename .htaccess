@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # The public landing page is the platform portal. Use an external redirect
+    # for the bare domain so Laravel never receives the repository subpath.
+    RewriteRule ^$ /platform [R=302,L]
+
+    # Forward the original path to Laravel. Laravel resolves an optional first
+    # segment as a tenant slug before the router matches the remaining path.
+    RewriteCond %{REQUEST_URI} !^/sms_moonlight/public/
+    RewriteRule ^(.+)$ sms_moonlight/public/$1 [L]
+</IfModule>
+

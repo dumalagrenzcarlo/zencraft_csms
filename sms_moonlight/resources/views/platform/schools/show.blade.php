@@ -17,12 +17,21 @@
         </dl>
     </article>
     <article class="card">
-        <h2>Portal domains</h2>
+        <h2>Portal paths</h2>
+        <ul class="domain-list">
+            <li><a href="{{ url($school->slug) }}" target="_blank" rel="noreferrer">{{ url($school->slug) }} ↗</a></li>
+            <li><a href="{{ url($school->slug.'/admin') }}" target="_blank" rel="noreferrer">Admin portal ↗</a></li>
+            <li><a href="{{ url($school->slug.'/teacher') }}" target="_blank" rel="noreferrer">Teacher portal ↗</a></li>
+            <li><a href="{{ url($school->slug.'/student') }}" target="_blank" rel="noreferrer">Student portal ↗</a></li>
+        </ul>
+        @if($school->domains->isNotEmpty())
+        <h3>Optional domains</h3>
         <ul class="domain-list">
         @foreach($school->domains as $domain)
             <li><a href="{{ request()->getScheme() }}://{{ $domain->domain }}{{ request()->getPort() && !in_array(request()->getPort(), [80,443]) ? ':'.request()->getPort() : '' }}" target="_blank" rel="noreferrer">{{ $domain->domain }} ↗</a></li>
         @endforeach
         </ul>
+        @endif
     </article>
 </section>
 

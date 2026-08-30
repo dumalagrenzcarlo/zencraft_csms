@@ -38,7 +38,11 @@ class SchoolController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'slug' => ['required', 'alpha_dash:ascii', 'min:3', 'max:50', Rule::unique('tenants', 'slug')],
+            'slug' => [
+                'required', 'alpha_dash:ascii', 'min:3', 'max:50',
+                Rule::notIn(config('saas.reserved_tenant_slugs', [])),
+                Rule::unique('tenants', 'slug'),
+            ],
             'timezone' => ['required', 'timezone:all'],
             'plan_id' => ['required', Rule::exists('plans', 'id')->where('active', true)],
             'admin_name' => ['required', 'string', 'max:120'],

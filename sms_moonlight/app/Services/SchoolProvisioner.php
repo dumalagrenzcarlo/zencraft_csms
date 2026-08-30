@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Plan;
 use App\Models\MoonshineUser;
+use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
@@ -17,25 +17,38 @@ use Throwable;
 class SchoolProvisioner
 {
     /**
-     * @param array{name:string,slug:string,timezone:string,plan_id:int,admin_name:string,admin_email:string,admin_password:string} $attributes
+     * @param  array{name:string,slug:string,timezone:string,plan_id:int,admin_name:string,admin_email:string,admin_password:string,admin_must_change_password?:bool}  $attributes
      */
     public function create(array $attributes): Tenant
     {
         $plan = Plan::query()->whereKey($attributes['plan_id'])->where('active', true)->firstOrFail();
-        $trialEndsAt = now()->addDays(config('saas.trial_days', 30));
+        $isFreePlan = $plan->monthly_price_cents === 0;
+        $trialEndsAt = $isFreePlan ? null : now()->addDays(config('saas.trial_days', 30));
         $tenant = null;
 
         try {
-            $tenant = DB::connection(config('tenancy.database.central_connection'))->transaction(function () use ($attributes, $plan, $trialEndsAt): Tenant {
-                $tenant = Tenant::create([
+            $tenant = DB::connection(config('tenancy.database.central_connection'))->transaction(function () use ($attributes, $isFreePlan, $plan, $trialEndsAt): Tenant {
+                $tenant = new Tenant([
                     'id' => (string) Str::uuid(),
                     'name' => $attributes['name'],
                     'slug' => $attributes['slug'],
-                    'status' => Tenant::STATUS_TRIAL,
+                    'status' => $isFreePlan ? Tenant::STATUS_ACTIVE : Tenant::STATUS_TRIAL,
                     'timezone' => $attributes['timezone'],
                     'current_plan_id' => $plan->id,
                     'trial_ends_at' => $trialEndsAt,
                 ]);
+
+                if ($isFreePlan) {
+                    $tenant->setInternal(
+                        'db_connection',
+                        config('saas.free_tenant_database_connection', 'tenant_sqlite')
+                    );
+                    $tenant->setInternal('db_name', "tenant_{$tenant->id}.sqlite");
+                }
+
+                // Saving dispatches TenantCreated, which creates and migrates the
+                // database. Database metadata must therefore be set beforehand.
+                $tenant->save();
 
                 foreach ($this->domainsFor($attributes['slug']) as $domain) {
                     $tenant->domains()->create(['domain' => $domain]);
@@ -44,7 +57,7 @@ class SchoolProvisioner
                 Subscription::create([
                     'tenant_id' => $tenant->id,
                     'plan_id' => $plan->id,
-                    'status' => 'trial',
+                    'status' => $isFreePlan ? Subscription::STATUS_ACTIVE : Subscription::STATUS_TRIAL,
                     'trial_ends_at' => $trialEndsAt,
                     'starts_at' => now(),
                 ]);
@@ -64,7 +77,7 @@ class SchoolProvisioner
                     'email' => strtolower($attributes['admin_email']),
                     'username' => 'admin',
                     'password' => Hash::make($attributes['admin_password']),
-                    'must_change_password' => true,
+                    'must_change_password' => $attributes['admin_must_change_password'] ?? true,
                 ]);
 
                 DB::table('settings')->updateOrInsert(

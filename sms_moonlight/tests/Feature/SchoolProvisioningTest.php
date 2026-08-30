@@ -77,7 +77,88 @@ class SchoolProvisioningTest extends TestCase
             ->assertOk()
             ->assertSee('Guided onboarding')
             ->assertSee('Billing lifecycle')
-            ->assertSee('Verified backups');
+            ->assertSee('Verified backups')
+            ->assertSee('/sample-academy/admin', false);
+    }
+
+    public function test_free_plan_uses_an_isolated_sqlite_database(): void
+    {
+        $plan = Plan::query()->create([
+            'name' => 'Free',
+            'slug' => 'free',
+            'included_users' => 111,
+            'max_users' => 111,
+            'monthly_price_cents' => 0,
+            'active' => true,
+        ]);
+
+        $school = app(SchoolProvisioner::class)->create($this->schoolPayload($plan));
+        $this->tenantsToDelete[] = $school->id;
+
+        $databaseName = "tenant_{$school->id}.sqlite";
+
+        $this->assertSame('tenant_sqlite', $school->getInternal('db_connection'));
+        $this->assertSame($databaseName, $school->getInternal('db_name'));
+        $this->assertFileExists(database_path($databaseName));
+
+        $school->run(function (): void {
+            $this->assertSame('sqlite', DB::connection()->getDriverName());
+            $this->assertDatabaseHas('moonshine_users', [
+                'username' => 'admin',
+                'email' => 'admin@sample.test',
+            ]);
+        });
+    }
+
+    public function test_central_domain_can_serve_a_tenant_from_its_slug_path(): void
+    {
+        $plan = Plan::query()->create([
+            'name' => 'Free',
+            'slug' => 'free-path',
+            'included_users' => 111,
+            'max_users' => 111,
+            'monthly_price_cents' => 0,
+            'active' => true,
+        ]);
+
+        $school = app(SchoolProvisioner::class)->create($this->schoolPayload($plan));
+        $this->tenantsToDelete[] = $school->id;
+
+        $this->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->get('/sample-academy')
+            ->assertOk()
+            ->assertSee('Sample Academy');
+
+        tenancy()->end();
+
+        $this->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->get('/sample-academy/student/login')
+            ->assertOk()
+            ->assertSee('/sample-academy/student/login', false)
+            ->assertSee('/build/assets/', false);
+
+        $this->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->post('/sample-academy/student/login', [
+                'lrn' => 'missing-student',
+                'password' => 'invalid-password',
+            ])
+            ->assertSessionHasErrors('lrn');
+    }
+
+    public function test_school_slug_cannot_conflict_with_a_central_or_asset_path(): void
+    {
+        $owner = User::factory()->create(['role' => 'owner', 'active' => true]);
+        $plan = $this->plan();
+
+        $this->actingAs($owner)
+            ->withServerVariables(['HTTP_HOST' => 'localhost'])
+            ->post('/platform/schools', [
+                ...$this->schoolPayload($plan),
+                'slug' => 'platform',
+            ])
+            ->assertSessionHasErrors('slug');
+
+        $this->assertDatabaseMissing('tenants', ['slug' => 'platform']);
     }
 
     public function test_school_databases_do_not_share_records(): void
@@ -394,3 +475,4 @@ class SchoolProvisioningTest extends TestCase
         ];
     }
 }
+

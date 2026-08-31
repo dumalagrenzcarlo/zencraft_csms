@@ -30,6 +30,20 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
+
+        $supportPassword = (string) env('PLATFORM_SUPPORT_PASSWORD');
+
+        if ($supportPassword !== '') {
+            User::query()->updateOrCreate(
+                ['email' => strtolower((string) env('PLATFORM_SUPPORT_EMAIL', 'support@example.test'))],
+                [
+                    'name' => (string) env('PLATFORM_SUPPORT_NAME', 'Support Operator'),
+                    'password' => Hash::make($supportPassword),
+                    'role' => 'support',
+                    'active' => true,
+                ]
+            );
+        }
     }
 
     /** @return list<array<string, mixed>> */

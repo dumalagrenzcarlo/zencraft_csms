@@ -7,11 +7,12 @@ use App\Http\Controllers\Platform\AuthController;
 use App\Http\Controllers\Platform\BillingController;
 use App\Http\Controllers\Platform\DashboardController;
 use App\Http\Controllers\Platform\OnboardingController;
+use App\Http\Controllers\Platform\SchoolAdminAccountController;
 use App\Http\Controllers\Platform\SchoolController;
 use App\Http\Controllers\Platform\SchoolLifecycleController;
 use App\Http\Controllers\Platform\SupportAccessController;
-use App\Http\Controllers\ReadinessController;
 use App\Http\Controllers\PublicSignupController;
+use App\Http\Controllers\ReadinessController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('central.domain')->group(function (): void {
@@ -41,6 +42,8 @@ Route::middleware('central.domain')->group(function (): void {
             Route::patch('/schools/{school}/lifecycle', [SchoolLifecycleController::class, 'update'])->name('platform.schools.lifecycle');
             Route::post('/schools/{school}/support-access', [SupportAccessController::class, 'store'])->name('platform.schools.support-access.store');
             Route::delete('/schools/{school}/support-access/{grant}', [SupportAccessController::class, 'destroy'])->name('platform.schools.support-access.destroy');
+            Route::post('/support-users', [SupportAccessController::class, 'storeUser'])->name('platform.support-users.store');
+            Route::patch('/schools/{school}/admin-account', [SchoolAdminAccountController::class, 'update'])->name('platform.schools.admin-account.update');
             Route::get('/audit-log', AuditLogController::class)->name('platform.audit');
         });
 

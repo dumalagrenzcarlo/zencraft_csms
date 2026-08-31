@@ -12,10 +12,38 @@ use App\Services\SupportAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class SupportAccessController extends Controller
 {
+    public function storeUser(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
+            'password' => ['required', 'string', 'min:12', 'confirmed'],
+        ]);
+
+        $user = User::query()->create([
+            'name' => $data['name'],
+            'email' => strtolower($data['email']),
+            'password' => Hash::make($data['password']),
+            'role' => 'support',
+            'active' => true,
+        ]);
+
+        PlatformAuditLog::query()->create([
+            'user_id' => $request->user()->id,
+            'event' => 'platform_support_user.created',
+            'ip_address' => $request->ip(),
+            'context' => ['support_user_id' => $user->id, 'email' => $user->email],
+            'created_at' => now(),
+        ]);
+
+        return back()->with('status', 'Support user created and ready for access assignments.');
+    }
+
     public function store(Request $request, Tenant $school, SupportAccess $access): RedirectResponse
     {
         $data = $request->validate([

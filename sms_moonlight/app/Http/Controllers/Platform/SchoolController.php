@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Platform;
 
+use App\Models\MoonshineUser;
 use App\Models\Plan;
 use App\Models\PlatformAuditLog;
 use App\Models\Tenant;
@@ -77,6 +78,30 @@ class SchoolController extends Controller
             'readiness' => $readiness->inspect($school),
             'plans' => Plan::query()->where('active', true)->orderBy('monthly_price_cents')->get(),
             'supportUsers' => User::query()->where('role', 'support')->where('active', true)->orderBy('name')->get(),
+            'adminAccount' => $this->adminAccount($school),
         ]);
+    }
+
+    /** @return array{name:string,username:string,email:string,must_change_password:bool,updated_at:mixed}|null */
+    private function adminAccount(Tenant $school): ?array
+    {
+        return $school->run(function (): ?array {
+            $admin = MoonshineUser::query()
+                ->where('moonshine_user_role_id', 1)
+                ->orderBy('id')
+                ->first();
+
+            if ($admin === null) {
+                return null;
+            }
+
+            return [
+                'name' => $admin->name,
+                'username' => $admin->username ?: $admin->email,
+                'email' => $admin->email,
+                'must_change_password' => (bool) $admin->must_change_password,
+                'updated_at' => $admin->updated_at,
+            ];
+        });
     }
 }
